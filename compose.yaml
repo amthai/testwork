@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        VITE_BASE_PATH: /proof/
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
     image: testwork-proof:${APP_VERSION:-local}
     container_name: testwork-proof
     restart: unless-stopped
@@ -27,4 +27,3 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-
