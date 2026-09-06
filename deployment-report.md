@@ -2,21 +2,24 @@
 
 ## Current migration status
 
-- Timestamp: 2026-09-06T06:05:00Z
+- Timestamp: 2026-09-06T06:41:00Z
 - Target URL: `https://proof.uisamurai.ru/`
-- Status: `WAITING_FOR_USER_MANAGED_DNS`
+- Status: `SUCCESS`
 - Required DNS record: `A proof.uisamurai.ru -> 178.212.13.134`
 - Application release: `cc298d9`
-- Deployment automation commit: `ed7defe`
+- Deployment automation commits: `ed7defe`, `ed55831`, current DNS-check retry update
 - Container: `testwork-proof`
 - Image: `testwork-proof:cc298d9`
 - Private upstream: `127.0.0.1:4174 -> 8080`
 
-All server-side work is complete. The authoritative Hostland DNS servers still
-return the previous parking address `185.26.122.80`. A temporary systemd timer
-checks DNS once per minute. When the new A record appears, it will obtain a
-Let's Encrypt certificate, install the final HTTPS Nginx configuration, verify
-`/health`, and disable itself.
+The authoritative Hostland DNS servers and the major public resolvers return
+`178.212.13.134`. The finalizer obtained a Let's Encrypt certificate for
+`proof.uisamurai.ru`, installed the HTTPS Nginx configuration, verified
+`/health`, wrote the success marker, and disabled its temporary timer.
+
+Some local recursive DNS caches may continue serving the previous parking
+address until their old TTL expires; this does not affect the authoritative
+record or the deployed server.
 
 ## Completed checks
 
@@ -26,6 +29,10 @@ Let's Encrypt certificate, install the final HTTPS Nginx configuration, verify
 - Production container: healthy, 0 restarts.
 - Nginx bootstrap host for `proof.uisamurai.ru`: HTTP 200 when tested directly
   against the VPS with the correct Host header.
+- Final HTTPS host: certificate issued for `proof.uisamurai.ru`, valid through
+  2026-12-05; HTTPS `/health` returns `ok`.
+- External browser clients reached the new root-path app and its assets with
+  HTTP 200 after DNS propagation.
 - Root asset URLs use `/assets/...` and are suitable for the subdomain.
 - Old Nginx routes `/proof` and `/proof/` were removed from `uisamurai.ru`.
 - `https://uisamurai.ru/proof` now returns 404.
@@ -37,6 +44,8 @@ Let's Encrypt certificate, install the final HTTPS Nginx configuration, verify
 - Timer: `proof-subdomain-finalizer.timer`
 - Success marker: `/var/lib/testwork-proof/subdomain-ready`
 - Final Nginx config: `/etc/nginx/sites-available/proof.uisamurai.ru.final`
+- The DNS check uses Hostland authoritative DNS, and the post-reload HTTPS
+  check retries briefly to allow graceful Nginx workers to drain.
 
 ## Rollback
 
@@ -50,4 +59,3 @@ Screen sharing, microphone capture, screen snapshots, the UI flow, and the
 container deployment are live. The voice transport remains the project's mock
 adapter until OpenAI Realtime credentials and the server-side ephemeral-token
 endpoint are added.
-

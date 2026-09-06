@@ -8,16 +8,19 @@ ACTIVE_CONFIG=/etc/nginx/sites-available/proof.uisamurai.ru
 FINAL_CONFIG=/etc/nginx/sites-available/proof.uisamurai.ru.final
 BOOTSTRAP_BACKUP=/etc/nginx/sites-available/proof.uisamurai.ru.bootstrap-backup
 READY_MARKER=/var/lib/testwork-proof/subdomain-ready
+DNS_CHECK_CONTAINER=testwork-proof
 
 if [[ -f "$READY_MARKER" ]]; then
   exit 0
 fi
 
 resolvectl flush-caches >/dev/null 2>&1 || true
-resolved_ips="$(getent ahostsv4 "$DOMAIN" | awk '{print $1}' | sort -u)"
+authoritative_lookup="$(
+  docker exec "$DNS_CHECK_CONTAINER" nslookup "$DOMAIN" ns.hostland.ru 2>/dev/null || true
+)"
 
-if ! grep -Fxq "$TARGET_IP" <<<"$resolved_ips"; then
-  echo "Waiting for $DOMAIN to resolve to $TARGET_IP; currently: ${resolved_ips:-no A record}"
+if ! grep -Eq "(^|[^0-9])${TARGET_IP//./\\.}([^0-9]|$)" <<<"$authoritative_lookup"; then
+  echo "Waiting for authoritative DNS for $DOMAIN to resolve to $TARGET_IP; lookup: ${authoritative_lookup:-failed}"
   exit 0
 fi
 
@@ -44,9 +47,21 @@ if ! nginx -t; then
 fi
 
 systemctl reload nginx
-curl --fail --silent --show-error \
-  --resolve "$DOMAIN:443:$TARGET_IP" \
-  "https://$DOMAIN/health" >/dev/null
+health_ok=0
+for attempt in $(seq 1 15); do
+  if curl --fail --silent --show-error \
+    --resolve "$DOMAIN:443:$TARGET_IP" \
+    "https://$DOMAIN/health" >/dev/null 2>&1; then
+    health_ok=1
+    break
+  fi
+  sleep 1
+done
+
+if (( health_ok == 0 )); then
+  echo "HTTPS health check did not pass after nginx reload"
+  exit 1
+fi
 
 install -d -m 0755 "$(dirname "$READY_MARKER")"
 printf '%s\n' "$(date -u +%FT%TZ)" >"$READY_MARKER"
@@ -55,4 +70,3 @@ systemctl disable proof-subdomain-finalizer.timer >/dev/null 2>&1 || true
 systemctl stop proof-subdomain-finalizer.timer >/dev/null 2>&1 || true
 
 echo "$DOMAIN is live over HTTPS"
-
