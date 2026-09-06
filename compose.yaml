@@ -1,0 +1,30 @@
+name: testwork-proof
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_BASE_PATH: /proof/
+    image: testwork-proof:${APP_VERSION:-local}
+    container_name: testwork-proof
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PROOF_PORT:-4174}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 192m
+    cpus: 0.50
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
