@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Proof subdomain DNS until HTTPS is ready
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=60s
+AccuracySec=5s
+Unit=proof-subdomain-finalizer.service
+
+[Install]
+WantedBy=timers.target
+

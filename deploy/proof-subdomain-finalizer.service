@@ -1,0 +1,9 @@
+[Unit]
+Description=Finalize Proof subdomain after DNS propagation
+After=network-online.target nginx.service docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/finalize-proof-subdomain
+
