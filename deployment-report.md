@@ -1,60 +1,53 @@
 # Deployment report
 
-## Production release
+## Current migration status
 
-- Date: 2026-09-06
-- URL: https://uisamurai.ru/proof/
-- Git commit: `f24f19d4d4a98f02191c8224653d8b34c7fa6fba`
-- Release directory: `/opt/testwork-proof/releases/f24f19d`
-- Current symlink: `/opt/testwork-proof/current`
-- Compose project: `testwork-proof`
+- Timestamp: 2026-09-06T06:05:00Z
+- Target URL: `https://proof.uisamurai.ru/`
+- Status: `WAITING_FOR_USER_MANAGED_DNS`
+- Required DNS record: `A proof.uisamurai.ru -> 178.212.13.134`
+- Application release: `cc298d9`
+- Deployment automation commit: `ed7defe`
 - Container: `testwork-proof`
-- Image: `testwork-proof:f24f19d`
+- Image: `testwork-proof:cc298d9`
 - Private upstream: `127.0.0.1:4174 -> 8080`
 
-The service runs in a dedicated Docker network and container. Its root
-filesystem is read-only, all Linux capabilities are dropped, and the
-container has CPU, memory, and process limits. Only the host Nginx can reach
-the published port.
+All server-side work is complete. The authoritative Hostland DNS servers still
+return the previous parking address `185.26.122.80`. A temporary systemd timer
+checks DNS once per minute. When the new A record appears, it will obtain a
+Let's Encrypt certificate, install the final HTTPS Nginx configuration, verify
+`/health`, and disable itself.
 
-## Verification
+## Completed checks
 
-- `npm run build` with `VITE_BASE_PATH=/proof/`: passed.
+- Root-path production build: passed.
 - `npm audit --audit-level=high`: 0 vulnerabilities.
-- Temporary VPS staging container on port 4175: healthy; removed after smoke test.
-- Production container: healthy, 0 restarts after deployment.
-- `https://uisamurai.ru/proof/`: HTTP 200 over valid TLS.
-- Static JS bundle and SPA fallback: HTTP 200.
-- Public `/proof/health`: `ok`.
-- Playwright: landing and preflight flow loaded; 0 console errors and 0 warnings.
-- Existing `https://uisamurai.ru/`: still HTTP 200.
+- Temporary staging container on port 4175: passed and removed.
+- Production container: healthy, 0 restarts.
+- Nginx bootstrap host for `proof.uisamurai.ru`: HTTP 200 when tested directly
+  against the VPS with the correct Host header.
+- Root asset URLs use `/assets/...` and are suitable for the subdomain.
+- Old Nginx routes `/proof` and `/proof/` were removed from `uisamurai.ru`.
+- `https://uisamurai.ru/proof` now returns 404.
 
-The expired `uisamurai.ru` certificate was renewed during deployment. It is
-valid through 2026-12-05. The HTTP ACME challenge location was restored in
-Nginx so the enabled Certbot timer can renew it automatically.
+## Installed finalizer
+
+- Script: `/usr/local/sbin/finalize-proof-subdomain`
+- Service: `proof-subdomain-finalizer.service`
+- Timer: `proof-subdomain-finalizer.timer`
+- Success marker: `/var/lib/testwork-proof/subdomain-ready`
+- Final Nginx config: `/etc/nginx/sites-available/proof.uisamurai.ru.final`
 
 ## Rollback
 
-This is the first containerized release of Proof, so rollback means removing
-the public route and stopping only this new service. The prepared Nginx
-rollback file keeps the ACME renewal fix intact:
-
-```bash
-install -o root -g root -m 0644 \
-  /etc/nginx/sites-available/uisamurai.rollback-testwork-f24f19d \
-  /etc/nginx/sites-available/uisamurai
-nginx -t && systemctl reload nginx
-cd /opt/testwork-proof/current
-docker compose down
-```
-
-The pre-deployment host configuration is also retained at
-`/etc/nginx/sites-available/uisamurai.backup-testwork-20260906T0532Z`.
+The pre-migration Nginx configuration is retained at
+`/etc/nginx/sites-available/uisamurai.backup-pre-proof-subdomain-20260906T0549Z`.
+The previous application image `testwork-proof:f24f19d` is also retained.
 
 ## Current functional boundary
 
 Screen sharing, microphone capture, screen snapshots, the UI flow, and the
-container deployment are live. The voice transport is still the project's
-mock adapter; OpenAI Realtime credentials and the server-side ephemeral-token
-endpoint have not yet been added.
+container deployment are live. The voice transport remains the project's mock
+adapter until OpenAI Realtime credentials and the server-side ephemeral-token
+endpoint are added.
 
