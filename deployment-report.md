@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.8.4 — 2026-11-26
+
+Published the centered screen loader at 06:54 UTC (15:54 Chita). The isolated candidate passed readiness and restart checks. Public health and readiness returned HTTP 200. HTML, CSS, the main JavaScript bundle and the history module matched the local build byte for byte. Both services are healthy. The previous web image is `testwork-proof:0.8.3-20261126`. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-screen-loader-release.md)
+
 ## Production — 0.8.3 — 2026-11-26
 
 Published at 04:58:41 UTC (13:58 Chita) on [Proof](https://proof.uisamurai.ru/). White report sections and history cards, filled status colors and the return-to-history button are live. Build and all 98 tests passed; audit has zero high/critical findings and four existing moderate findings. The isolated candidate passed readiness, access, asset equality and authorization/assignment persistence after restart. Public HTTPS health checks and all four UI assets passed; the history screen loaded in IAB. Web and speech are healthy with zero restarts. [Verification](docs/knowledge/entries/2026-11/2026-11-26-report-cards-release.md)
