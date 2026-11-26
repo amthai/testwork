@@ -4,6 +4,7 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-26 | infra | deployment | [Публикация Proof 0.9.4](entries/2026-11/2026-11-26-restore-rewrite-comparison-release.md) | done |
 | 2026-11-26 | fix | отчёт | [Возврат исходной цитаты в сравнение формулировок](entries/2026-11/2026-11-26-restore-rewrite-comparison.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.9.3](entries/2026-11/2026-11-26-report-navigation-fields-release.md) | done |
 | 2026-11-26 | design | UI | [Разбор, основное меню и фокус полей](entries/2026-11/2026-11-26-report-navigation-fields.md) | done |
