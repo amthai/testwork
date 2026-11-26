@@ -27,7 +27,7 @@ export function reportMarkdown(session: DefenseSession) {
         lines.push("")
       })
       if (feedback.details.rewrites.length) lines.push("## Формулировки", "")
-      feedback.details.rewrites.forEach(r => lines.push(`Вариант: ${r.after}`, "", r.note, ""))
+      feedback.details.rewrites.forEach(r => lines.push(`Было: ${r.before}`, "", `Вариант: ${r.after}`, "", r.note, ""))
     }
     lines.push("## Следующая попытка", "", ...feedback.nextSteps.map(step => `- ${step}`), "", "## Ограничения", "", ...feedback.limitations.map(item => `- ${item}`), "")
   }

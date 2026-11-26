@@ -1,4 +1,4 @@
-import { Smile } from "lucide-react"
+import { Frown, Smile } from "lucide-react"
 import { assignmentQuotes, coverageLabels } from "@/lib/methodology"
 import type { DefenseSession } from "@/lib/session"
 import { Badge } from "@/components/ui/badge"
@@ -42,7 +42,16 @@ export function FeedbackDetails({ session }: { session: DefenseSession }) {
       <h2 className="report-section-title">Как яснее сформулировать мысль</h2>
       <p className="report-description">Варианты на основе сказанного. Не добавляй к ответу исследования и результаты, которых не было.</p>
       <div className="report-items">{details.rewrites.map((rewrite, i) => <article key={i} className="report-item">
-        <div className="rewrite-panel"><h3><Smile size={20} aria-hidden="true" />Более ясная формулировка</h3><p className="report-copy mt-3">{rewrite.after}</p></div>
+        <div className="rewrite-pair">
+          <div className="rewrite-panel rewrite-before">
+            <h3><Frown size={20} aria-hidden="true" />Как прозвучало</h3>
+            <blockquote className="report-copy mt-3">{rewrite.before}</blockquote>
+          </div>
+          <div className="rewrite-panel rewrite-after">
+            <h3><Smile size={20} aria-hidden="true" />Более ясная формулировка</h3>
+            <p className="report-copy mt-3">{rewrite.after}</p>
+          </div>
+        </div>
         <p className="report-description mt-3">{rewrite.note}</p>
       </article>)}</div>
     </section>}

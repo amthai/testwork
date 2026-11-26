@@ -93,14 +93,16 @@ test("markdown export includes source assignment, findings, actions and transcri
   const session = structuredClone(exampleSession)
   const details = session.feedback!.details!
   const answer = session.transcript[2]
-  details.rewrites.push({ sourceId: answer.id, before: answer.text, after: "Предложенный вариант ответа", note: "Уточни следующий шаг." })
+  const rewrite = { sourceId: answer.id, before: "этот случай не продумал", after: "Предложенный вариант ответа", note: "Уточни следующий шаг." }
+  assert.ok(answer.text.includes(rewrite.before))
+  details.rewrites.push(rewrite)
   const requirement = brief.analysis.requirements[0]
   details.findings[0].evidence.push({ id: requirement.id, quote: requirement.quote }, { id: "frame-1", quote: "" })
   session.feedback!.strengths[0].evidenceIds.push("frame-1")
   const [analysis, transcript] = reportMarkdown(session).split("## Расшифровка\n")
   assert.ok(analysis.includes(briefText))
   assert.ok(analysis.includes(details.findings[0].prepareForDefense!))
-  assert.ok(analysis.includes(details.rewrites[0].after))
+  assert.ok(analysis.includes(`## Формулировки\n\nБыло: ${rewrite.before}\n\nВариант: ${rewrite.after}\n\n${rewrite.note}`))
   assert.ok(analysis.includes(`Из задания: «${requirement.quote}»`))
   assert.ok(!analysis.includes("Основание: кадр экрана"))
   for (const turn of session.transcript) {
