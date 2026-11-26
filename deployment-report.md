@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.9.2 — 2026-11-26
+
+Published commit `475a6ce` at 09:25 UTC. All 98 tests and the release CI passed. All 13 public HTML, CSS and JavaScript files matched the clean build. HTTPS health and readiness returned 200. The production homepage rendered its button and navigation at 14 px and its description at 16 px. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-text-sizes-release.md)
+
 ## Production — 0.9.1 — 2026-11-26
 
 Published commit `0dd0526` at 08:56 UTC. All 98 tests and CI passed. The 13 public HTML, CSS and JavaScript files matched the release build. Public health and readiness returned HTTP 200. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-confirmation-marks-release.md)
