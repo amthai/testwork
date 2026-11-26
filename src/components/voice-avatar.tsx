@@ -14,10 +14,10 @@ function waveContour(radius: number, phase: number) {
 
 const contours = [waveContour(95, 0), waveContour(103, 0.9), waveContour(111, 2.1)]
 
-export function VoiceAvatar() {
-  return <div className="voice-avatar" aria-hidden="true">
+export function VoiceAvatar({ filled = false }: { filled?: boolean }) {
+  return <div className={filled ? "voice-avatar voice-avatar-filled" : "voice-avatar"} aria-hidden="true">
     <svg className="avatar-waves" viewBox="0 0 240 240" fill="none">
-      {contours.map(path => <path key={path} d={path} />)}
+      {(filled ? [...contours].reverse() : contours).map(path => <path key={path} d={path} />)}
     </svg>
     <div className="avatar-crop"><VoicePortrait /></div>
   </div>

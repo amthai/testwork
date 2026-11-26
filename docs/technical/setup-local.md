@@ -43,7 +43,7 @@ python3.11 -m venv "$HOME/.local/share/proof-speech/venv"
 | OPENAI_TRANSCRIPTION_MODEL | gpt-4o-mini-transcribe |
 | PROOF_ACCESS_CODE | Код приглашения; обязателен в production (от 12 символов) |
 | DATA_DIR | Каталог SQLite, data |
-| MAX_SESSION_SECONDS | 1200 |
+| MAX_SESSION_SECONDS | 1800 |
 | MAX_DAILY_SESSIONS | 30 попыток за скользящие 24 часа на сервер |
 | MAX_OWNER_DAILY_SESSIONS | 5 попыток за 24 часа на профиль устройства |
 | MAX_CONCURRENT_SESSIONS | 3 |

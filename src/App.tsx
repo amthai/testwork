@@ -75,6 +75,7 @@ function App() {
 
   const connect = useCallback(async (resume = false) => {
     if (joinLock.current || !media.microphoneStream || media.microphoneStatus !== "ready") return
+    if (!resume && media.screenStatus !== "ready") return
     joinLock.current = true
     const current = ++operation.current
     setIsJoining(true); setError(""); setAudioBlocked(false)
@@ -97,7 +98,7 @@ function App() {
     } finally {
       if (current === operation.current) { setIsJoining(false); joinLock.current = false }
     }
-  }, [media.microphoneStream, media.microphoneStatus, session, brief, config?.provider])
+  }, [media.microphoneStream, media.microphoneStatus, media.screenStatus, session, brief, config?.provider])
 
   useEffect(() => {
     if (view !== "call" || !media.microphoneStream) return
@@ -217,7 +218,7 @@ function App() {
       <a href="#main-content" className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-zinc-950 px-4 py-2 text-sm text-white focus:translate-y-0">Перейти к содержанию</a>
       <Suspense fallback={<main id="main-content"><ScreenLoader /></main>}>
       <AnimatePresence mode="wait" initial={false}>
-        {view === "landing" && <LandingPage maxMinutes={Math.round((config?.maxDurationSeconds ?? 1200) / 60)} key="landing" onStart={openPreflight} />}
+        {view === "landing" && <LandingPage maxMinutes={Math.round((config?.maxDurationSeconds ?? 1800) / 60)} key="landing" onStart={openPreflight} />}
         {view === "preflight" && <PreflightPage key="preflight" microphoneStatus={media.microphoneStatus} screenStatus={media.screenStatus} microphoneError={media.microphoneError} screenError={media.screenError} joinError={error} isJoining={isJoining} screenStream={media.screenStream} onRequestMicrophone={media.requestMicrophone} onRequestScreen={media.requestScreen} onBack={goHome} onJoin={() => { void connect() }} config={config} onRefreshConfig={loadConfig} briefText={briefText} briefImages={briefImages} onBriefImages={setBriefImages} brief={brief} onBriefText={setBriefText} onPreparedBrief={setBrief} />}
         {view === "call" && <CallPage key="call" duration={duration} aiState={aiState} microphoneEnabled={media.microphoneEnabled} screenStatus={media.screenStatus} screenStream={media.screenStream} onToggleMicrophone={media.microphoneStatus === "ready" ? media.toggleMicrophone : () => { void media.requestMicrophone() }} onRequestScreen={media.requestScreen} onStopScreen={media.stopScreen} onEnd={() => { void endCall(true) }} error={error || media.microphoneError || screenContext.error || media.screenError} audioBlocked={audioBlocked} onPlayAudio={() => { void transport.current?.playAudio() }} onReconnect={() => { void connect(true) }} isJoining={isJoining} isEnding={isEnding} screenSent={screenContext.sent} stage={session?.stage ?? "intro"} />}
         {view === "feedback" && session && <FeedbackPage key="feedback" session={session} error={error} onRetry={retryFeedback} onRepeat={openPreflight} onHome={goHome} onBack={goHistory} onDelete={async () => { try { await api.delete(session.id); goHome() } catch (cause) { setError(errorMessage(cause)) } }} />}

@@ -18,7 +18,7 @@ const envSchema = z.object({
   OPENAI_TRANSCRIPTION_MODEL: z.string().default("gpt-4o-mini-transcribe"),
   PROOF_ACCESS_CODE: z.string().default(""),
   DATA_DIR: z.string().default("data"),
-  MAX_SESSION_SECONDS: z.coerce.number().int().min(30).max(2700).default(1200),
+  MAX_SESSION_SECONDS: z.coerce.number().int().min(30).max(2700).default(1800),
   MAX_DAILY_SESSIONS: z.coerce.number().int().positive().default(30),
   MAX_OWNER_DAILY_SESSIONS: z.coerce.number().int().positive().default(5),
   MAX_CONCURRENT_SESSIONS: z.coerce.number().int().positive().default(3),

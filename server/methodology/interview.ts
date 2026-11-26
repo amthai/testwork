@@ -100,7 +100,7 @@ export class Interview {
       if (!this.connection.voice) this.watchdog = setTimeout(() => { if (!this.closed && this.busy?.token === token) this.fail() }, 30_000)
     } catch { this.fail() }
   }
-  private deadline = Date.now() + 1200_000
+  private deadline = Date.now() + 1800_000
   setDeadline(at: number) { this.deadline = at }
   event(raw: unknown) {
     const parsed = eventSchema.safeParse(raw)

@@ -16,9 +16,9 @@ import { brief, briefText, exampleSession } from "./fixtures.js"
 const image: BriefImage = { id: "00000000-0000-4000-8000-000000000003", name: "Задание.png", dataUrl: "data:image/jpeg;base64,/9j/2Q==" }
 const imageAnalysis = () => ({ ...structuredClone(brief.analysis), imageSources: [{ id: image.id, text: briefText, description: "Фото задания" }], requirements: brief.analysis.requirements.map(r => ({ ...r, sourceImageId: image.id })) })
 
-test("preparation gates require a saved assignment, then microphone; going back remains possible", () => {
-  for (const [hasBrief, microphone, expected] of [[false, false, [true, false, false]], [false, true, [true, false, false]], [true, false, [true, true, false]], [true, true, [true, true, true]]] as const) {
-    assert.deepEqual([0, 1, 2].map(step => canOpenPreparationStep(step, hasBrief, microphone)), expected)
+test("preparation gates require a saved assignment, then connected devices; going back remains possible", () => {
+  for (const [hasBrief, devicesReady, expected] of [[false, false, [true, false, false]], [false, true, [true, false, false]], [true, false, [true, true, false]], [true, true, [true, true, true]]] as const) {
+    assert.deepEqual([0, 1, 2].map(step => canOpenPreparationStep(step, hasBrief, devicesReady)), expected)
   }
   assert.equal(canOpenPreparationStep(3, true, true), false)
 })

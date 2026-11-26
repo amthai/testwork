@@ -33,6 +33,8 @@
 
 ## Specs
 
+- [Подготовка и экран звонка](superpowers/specs/2026-11-26-preparation-and-call.md) — обязательные устройства, нижняя панель и длительность защиты.
+
 - [Карточки истории и отчёта](superpowers/specs/2026-11-26-report-cards-design.md) — единые секции, цветные статусы и возврат к списку.
 
 - [Студия защиты Proof](superpowers/specs/2026-11-25-fluid-studio.md) — дизайн всех экранов на Fluid Functionalism.

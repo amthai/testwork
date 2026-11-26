@@ -162,7 +162,7 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
         {/* Clipped sideways only (overflow-x: clip keeps the trimmed
             label's descenders, which hidden would cut), so a squeezed badge
             ends in an ellipsis. */}
-        <span className="min-w-0 overflow-x-clip text-ellipsis [text-box:trim-both_cap_alphabetic]">{children}</span>
+        <span className="inline-flex items-center gap-1 min-w-0 overflow-x-clip text-ellipsis [text-box:trim-both_cap_alphabetic]">{children}</span>
       </span>
     );
   }
