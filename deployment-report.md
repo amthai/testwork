@@ -1,5 +1,11 @@
 # Deployment report
 
+## Production — 0.10.0 — 2026-11-26
+
+Proof switched to commit `90fad44` at 10:41:37 UTC (19:41:37 Chita). The release images are `testwork-proof:0.10.0-20261126` and `proof-speech:0.10.0-20261126`. The clean build passed all 112 tests. The dependency audit found four moderate issues and zero high or critical issues. [Release CI](https://github.com/amthai/testwork/actions/runs/45802437322).
+
+The isolated candidate preserved access and assignment text across a restart. A scripted interview exercised four Piper voices and GigaAM, including three handoffs from Denis and six attributed turns, without paid API calls. After the switch, all 13 public assets matched the release build. HTTPS health, readiness and bootstrap returned HTTP 200. Bootstrap reported DeepSeek and Yandex. The public homepage showed all three specialists in the in-app browser. Both services were healthy with zero restarts. [Backup, verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-interview-team-release.md).
+
 ## Production — 0.9.4 — 2026-11-26
 
 Published commit `fe1a762` at 10:02 UTC. The release build displayed the original and suggested wording together for a saved test report. The Markdown export test verified the same pair and its note. All 98 tests and release CI passed. All 13 public HTML, CSS and JavaScript files matched the clean build. Health, readiness and bootstrap returned HTTP 200. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-restore-rewrite-comparison-release.md)
