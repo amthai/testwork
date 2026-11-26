@@ -31,8 +31,11 @@ export function useMediaSession() {
 
   const microphoneRef = useRef<MediaStream | null>(null)
   const screenRef = useRef<MediaStream | null>(null)
+  const microphoneRequest = useRef(0)
+  const screenRequest = useRef(0)
 
   const requestMicrophone = useCallback(async () => {
+    const request = ++microphoneRequest.current
     if (!navigator.mediaDevices?.getUserMedia) {
       setMicrophoneStatus("unsupported")
       setMicrophoneError("Этот браузер не поддерживает доступ к микрофону.")
@@ -50,6 +53,7 @@ export function useMediaSession() {
           noiseSuppression: true,
         },
       })
+      if (request !== microphoneRequest.current) { stream.getTracks().forEach(track => track.stop()); return false }
 
       microphoneRef.current?.getTracks().forEach((track) => track.stop())
       microphoneRef.current = stream
@@ -71,6 +75,7 @@ export function useMediaSession() {
 
       return true
     } catch (error) {
+      if (request !== microphoneRequest.current) return false
       setMicrophoneStatus("denied")
       setMicrophoneError(permissionMessage("microphone", error))
       return false
@@ -78,6 +83,7 @@ export function useMediaSession() {
   }, [])
 
   const requestScreen = useCallback(async () => {
+    const request = ++screenRequest.current
     if (!navigator.mediaDevices?.getDisplayMedia) {
       setScreenStatus("unsupported")
       setScreenError("Этот браузер не поддерживает демонстрацию экрана.")
@@ -92,6 +98,7 @@ export function useMediaSession() {
         video: { frameRate: 5 },
         audio: false,
       })
+      if (request !== screenRequest.current) { stream.getTracks().forEach(track => track.stop()); return false }
 
       screenRef.current?.getTracks().forEach((track) => {
         track.onended = null
@@ -115,6 +122,7 @@ export function useMediaSession() {
 
       return true
     } catch (error) {
+      if (request !== screenRequest.current) return false
       setScreenStatus("denied")
       setScreenError(permissionMessage("screen", error))
       return false
@@ -130,6 +138,7 @@ export function useMediaSession() {
   }, [microphoneEnabled])
 
   const stopScreen = useCallback(() => {
+    screenRequest.current++
     screenRef.current?.getTracks().forEach((track) => {
       track.onended = null
       track.stop()
@@ -141,6 +150,8 @@ export function useMediaSession() {
   }, [])
 
   const stopAll = useCallback(() => {
+    microphoneRequest.current++
+    screenRequest.current++
     microphoneRef.current?.getTracks().forEach((track) => {
       track.onended = null
       track.stop()

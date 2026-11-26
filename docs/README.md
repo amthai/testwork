@@ -17,6 +17,7 @@
 
 - [`overview.md`](product/overview.md) — продукт и текущий пользовательский поток;
 - [`out-of-scope.md`](product/out-of-scope.md) — ограничения MVP.
+- [`design-lead.md`](product/design-lead.md) — характер интервьюера, контекст задания, вопросы и доказательный разбор.
 
 ## Technical
 
@@ -28,8 +29,22 @@
 
 - [`README.md`](qa/README.md) — правила проверки;
 - [`test-cases.md`](qa/test-cases.md) — ручные тест-кейсы для текущего MVP.
+- [`design-lead-evaluation.md`](qa/design-lead-evaluation.md) — поведенческие сценарии живой проверки AI.
 
 ## Specs
+
+- [Карточки истории и отчёта](superpowers/specs/2026-11-26-report-cards-design.md) — единые секции, цветные статусы и возврат к списку.
+
+- [Студия защиты Proof](superpowers/specs/2026-11-25-fluid-studio.md) — дизайн всех экранов на Fluid Functionalism.
+
+- [Задание как контекст и управление разговором](superpowers/specs/2026-11-25-assignment-and-voice-controls.md) — подготовка и завершение защиты с версии 0.7.
+
+- [Локальная речь и DeepSeek](superpowers/specs/2026-11-23-deepseek-local-voice.md) — распознавание, озвучка и анализ кадров.
+
+- [Три шага подготовки и фотографии](superpowers/specs/2026-09-06-preflight-steps-and-images.md) — задание → устройства → советы, реальные изображения и нейтральная недоступность.
+- [Методология дизайн-лида](superpowers/specs/2026-09-06-design-lead-methodology.md) — характер, бриф, серверные этапы и подробный отчёт.
+
+- [Рабочая Defense Session](superpowers/specs/2026-09-06-live-product-design.md) — переход на реальную AI-интеграцию, сервер, хранение и эксплуатационные границы.
 
 - [`superpowers/specs/`](superpowers/specs/) — существующие и новые дизайн-спецификации. Они сохраняют текущий рабочий путь проекта и не переносятся в отдельный дублирующий каталог.
 

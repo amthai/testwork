@@ -1,43 +1,72 @@
-import { ArrowLeft, CheckCircle2, Clock3, RefreshCcw, Sparkles } from "lucide-react"
+import { ArrowLeft, Clock3, Download, Loader2, RefreshCcw, Trash2 } from "lucide-react"
 import { motion } from "motion/react"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Logo } from "@/components/logo"
+import { WorkspaceHeader } from "@/components/workspace-header"
+import { spring } from "@/lib/springs"
+import { formatDuration, type DefenseSession } from "@/lib/session"
+import { FeedbackDetails } from "@/components/feedback-details"
+import { reportMarkdown } from "@/lib/report-export"
 
 type FeedbackPageProps = {
-  duration: string
-  snapshotCount: number
+  session: DefenseSession
+  error: string
+  onRetry: () => Promise<void>
   onRepeat: () => void
   onHome: () => void
+  onBack: () => void
+  onDelete: () => Promise<void>
 }
 
-export function FeedbackPage({ duration, snapshotCount, onRepeat, onHome }: FeedbackPageProps) {
+export function FeedbackPage({ session, error, onRetry, onRepeat, onHome, onBack, onDelete }: FeedbackPageProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const { feedback, transcript } = session
+  const generating = session.status === "finishing"
+  const duration = formatDuration(((session.endedAt ?? Date.now()) - session.createdAt) / 1000)
+  const stamp = (at: number) => formatDuration((at - session.createdAt) / 1000)
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([reportMarkdown(session)], { type: "text/markdown;charset=utf-8" }))
+    const anchor = document.createElement("a")
+    anchor.href = url; anchor.download = `proof-${new Date(session.createdAt).toISOString().slice(0, 10)}.md`; anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
   return (
-    <motion.div
-      className="min-h-svh bg-background"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-    >
-      <header className="mx-auto flex h-20 max-w-[1120px] items-center justify-between px-5 sm:px-8"><Logo onClick={onHome} /><Badge variant="outline" className="rounded-full font-normal">Созвон завершён</Badge></header>
-      <main id="main-content" className="mx-auto w-full max-w-[820px] px-5 pb-20 pt-14 sm:px-8 sm:pt-20">
-        <div className="max-w-[650px]">
-          <div className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 className="size-6" /></div>
-          <h1 className="mt-7 text-balance font-heading text-4xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-6xl">Первая репетиция готова.</h1>
-          <p className="mt-5 max-w-[600px] text-base leading-7 text-muted-foreground">Ты прошёл защиту от начала до конца. Вот два наблюдения, которые стоит забрать в следующую попытку.</p>
-          <div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" /> {duration}</span><span>·</span><span>{snapshotCount} кадров экрана просмотрено</span><Badge variant="secondary" className="ml-1">Прототип результата</Badge></div>
-        </div>
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          <Card className="rounded-2xl py-0 shadow-none"><CardContent className="p-6 sm:p-7"><div className="flex items-center gap-2 text-sm font-medium text-emerald-700"><Sparkles className="size-4" /> Сильная сторона</div><h2 className="mt-8 font-heading text-xl font-medium leading-snug tracking-[-0.035em]">Ты объясняешь решение через контекст задачи.</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Слушателю понятно не только что нарисовано, но и почему появился именно такой сценарий.</p></CardContent></Card>
-          <Card className="rounded-2xl py-0 shadow-none"><CardContent className="p-6 sm:p-7"><div className="flex items-center gap-2 text-sm font-medium text-brand"><RefreshCcw className="size-4" /> Попробовать иначе</div><h2 className="mt-8 font-heading text-xl font-medium leading-snug tracking-[-0.035em]">Назови критерии выбора чуть раньше.</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Перед финальными экранами коротко зафиксируй ограничения, которые вели твоё решение.</p></CardContent></Card>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button size="lg" className="h-12 rounded-xl px-6" onClick={onRepeat}><RefreshCcw /> Повторить защиту</Button>
-          <Button variant="outline" size="lg" className="h-12 rounded-xl px-6" onClick={onHome}><ArrowLeft /> На главную</Button>
+    <motion.div className="min-h-svh report-page" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring.slow}>
+      <WorkspaceHeader context="Разбор защиты" onHome={onHome} />
+      <main id="main-content" className="report-main">
+        <Button variant="ghost" className="report-back" onClick={onBack}><ArrowLeft /> Назад к защитам</Button>
+        <section className="report-intro report-section">
+          <Badge variant="solid" color="gray">{generating ? "Готовим разбор" : "Защита сохранена"}</Badge>
+          <h1>{feedback?.title ?? (generating ? "Собираем твой разбор" : session.status === "insufficient" ? "Мало данных для разбора" : "Твоя защита сохранена")}</h1>
+          <p className="report-summary">{feedback?.summary ?? (generating ? "Сопоставляем твои аргументы, ответы и показанные экраны. Разбор появится здесь — можно вернуться к нему из «Мои защиты»." : session.error ?? "Можно подготовить разбор по сохранённым репликам.")}</p>
+          <div className="report-metrics"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" /> {duration}</span><span>Твоих реплик · {transcript.filter(item => item.role === "user").length}</span><span>Кадров экрана · {session.frameCount}</span></div>
+        </section>
+        {error && <p role="alert" className="report-section report-copy mt-5">{error}</p>}
+        {feedback && <>
+          <div className="report-sections">
+            {[{ label: "Сильные стороны", items: feedback.strengths }, { label: "Что попробовать иначе", items: feedback.improvements }].filter(group => !feedback.details || group.label === "Сильные стороны").map(group => <section key={group.label} className="report-section">
+              <h2 className="report-section-title">{group.label}</h2>
+              {group.items.length === 0 && <p className="report-description">Пока недостаточно данных для уверенного вывода.</p>}
+              <div className="report-items">{group.items.map((item, index) => <article key={index} className="report-item">
+                <h3 className="report-item-title">{item.title}</h3><p className="report-description">{item.detail}</p>
+                {item.evidenceIds.map(id => {
+                  const entry = transcript.find(t => t.id === id)
+                  return entry ? <blockquote key={id} className="report-evidence"><a href={`#transcript-${id}`} onClick={event => { event.preventDefault(); const target = document.getElementById(`transcript-${id}`); target?.closest("details")?.setAttribute("open", ""); target?.scrollIntoView({ block: "center" }) }} className="underline underline-offset-2">{stamp(entry.at)}</a> · {entry.text}</blockquote> : <p key={id} className="report-description">По показанному экрану</p>
+                })}
+              </article>)}</div>
+            </section>)}
+          </div>
+          <FeedbackDetails session={session} />
+          {feedback.nextSteps.length > 0 && <section className="report-section mt-5"><h2 className="report-section-title">В следующей защите</h2><ol className="report-copy mt-4 list-decimal space-y-3 pl-5">{feedback.nextSteps.map((step, index) => <li key={index}>{step}</li>)}</ol></section>}
+          {feedback.limitations.length > 0 && <aside className="report-section report-copy mt-5 text-muted-foreground"><h2 className="report-section-title">Что учесть в этом разборе</h2>{feedback.limitations.map((item, index) => <p className="mt-2" key={index}>{item}</p>)}</aside>}
+        </>}
+        {!feedback && !generating && session.status !== "insufficient" && <Button className="mt-7" disabled={busy} onClick={async () => { setBusy(true); try { await onRetry() } finally { setBusy(false) } }}>{busy ? <Loader2 className="animate-spin" /> : <RefreshCcw />} {session.status === "failed" ? "Повторить разбор" : "Подготовить разбор"}</Button>}
+        {transcript.length > 0 && <details className="report-section report-transcript"><summary className="report-section-title cursor-pointer">Расшифровка разговора ({transcript.length})</summary><div className="mt-5 space-y-5">{transcript.map(item => <div id={`transcript-${item.id}`} key={item.id} className="transcript-turn" data-role={item.role}><p className="text-xs text-muted-foreground">{stamp(item.at)} · {item.role === "user" ? "Ты" : "Proof"}{item.interrupted ? " · Реплика прервана, часть текста могла не прозвучать" : ""}</p><p className="report-copy mt-1 whitespace-pre-wrap">{item.text}</p></div>)}</div></details>}
+        <div className="report-actions"><Button size="lg" className="h-12 px-6" onClick={onRepeat}><RefreshCcw /> Повторить защиту</Button><Button variant="tertiary" size="lg" className="h-12 px-6" onClick={onHome}><ArrowLeft /> На главную</Button>{transcript.length > 0 && <Button variant="ghost" className="h-12" onClick={download}><Download /> Скачать</Button>}</div>
+        <div className="mt-8 pt-2 text-sm text-muted-foreground"><p>Результат доступен в «Мои защиты» на этом устройстве. Удаление очистит расшифровку, кадры и разбор на сервере.</p>
+          {!confirmDelete ? <Button variant="ghost" className="mt-3 text-muted-foreground" onClick={() => setConfirmDelete(true)}><Trash2 /> Удалить сессию</Button> : <div className="mt-3 flex flex-wrap items-center gap-3"><span>Удалить эту защиту без восстановления?</span><Button variant="destructive" disabled={busy} onClick={async () => { setBusy(true); try { await onDelete() } finally { setBusy(false) } }}>Да, удалить</Button><Button variant="ghost" onClick={() => setConfirmDelete(false)}>Отмена</Button></div>}
         </div>
       </main>
     </motion.div>

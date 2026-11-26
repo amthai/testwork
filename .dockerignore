@@ -7,4 +7,10 @@ npm-debug.log*
 deployment-report.md
 docs
 design-system
-
+.env
+.env.*
+data
+output
+artifacts
+dist-server
+.playwright-cli

@@ -1,14 +1,46 @@
 name: testwork-proof
 
 services:
+  speech:
+    profiles: [speech]
+    build: ./speech
+    image: proof-speech:${APP_VERSION:-local}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    volumes:
+      - speech-models:/opt/proof-speech/weights
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    cpus: 3.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8078/ready', timeout=2)"]
+      interval: 20s
+      timeout: 4s
+      retries: 3
   web:
     build:
       context: .
       args:
         VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
     image: testwork-proof:${APP_VERSION:-local}
-    container_name: testwork-proof
+    container_name: ${PROOF_CONTAINER_NAME:-testwork-proof}
     restart: unless-stopped
+    init: true
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      APP_ORIGIN: ${APP_ORIGIN:-https://proof.uisamurai.ru}
+      DATA_DIR: /app/data
+      TRUST_PROXY_HOPS: 1
+      SPEECH_URL: http://speech:8078
+    volumes:
+      - proof-data:/app/data
     ports:
       - "127.0.0.1:${PROOF_PORT:-4174}:8080"
     read_only: true
@@ -19,11 +51,15 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 100
-    mem_limit: 192m
-    cpus: 0.50
+    mem_limit: 512m
+    cpus: 1.0
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
       timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 10s
+
+volumes:
+  proof-data:
+  speech-models:

@@ -1,5 +1,7 @@
 # Proof interface redesign
 
+> Historical UI baseline. The live integration, optional screen share, history and report behavior are superseded by [live-product-design.md](2026-09-06-live-product-design.md).
+
 Date: 2026-09-06
 
 ## Objective

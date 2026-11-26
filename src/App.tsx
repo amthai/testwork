@@ -1,200 +1,229 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence } from "motion/react"
 import { LandingPage } from "@/pages/landing-page"
-import { PreflightPage } from "@/pages/preflight-page"
-import { CallPage, type AiState } from "@/pages/call-page"
-import { FeedbackPage } from "@/pages/feedback-page"
 import { useMediaSession } from "@/hooks/use-media-session"
-import { createRealtimeTransport } from "@/lib/realtime"
+import { useScreenContext } from "@/hooks/use-screen-context"
+import { LocalTransport } from "@/lib/local-transport"
+import { RealtimeTransport, type AiState } from "@/lib/realtime"
+import { api, errorMessage } from "@/lib/api"
+import { formatDuration, type Bootstrap, type DefenseSession } from "@/lib/session"
+import type { Brief, BriefImage } from "@/lib/methodology"
 
-type View = "landing" | "preflight" | "call" | "feedback"
+const PreflightPage = lazy(() => import("@/pages/preflight-page").then(module => ({ default: module.PreflightPage })))
+const CallPage = lazy(() => import("@/pages/call-page").then(module => ({ default: module.CallPage })))
+const FeedbackPage = lazy(() => import("@/pages/feedback-page").then(module => ({ default: module.FeedbackPage })))
+const HistoryPage = lazy(() => import("@/pages/history-page").then(module => ({ default: module.HistoryPage })))
 
-function formatDuration(seconds: number) {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0")
-  const remainder = (seconds % 60).toString().padStart(2, "0")
-  return `${minutes}:${remainder}`
-}
+type View = "landing" | "preflight" | "call" | "feedback" | "history"
 
 function App() {
-  const [view, setView] = useState<View>("landing")
-  const [elapsed, setElapsed] = useState(0)
-  const [aiState, setAiState] = useState<AiState>("speaking")
-  const [snapshotCount, setSnapshotCount] = useState(0)
+  const [view, setView] = useState<View>(() => window.location.hash === "#history" ? "history" : "landing")
+  const [config, setConfig] = useState<Bootstrap | null>(null)
+  const [session, setSession] = useState<DefenseSession | null>(null)
+  const [briefText, setBriefText] = useState("")
+  const [briefImages, setBriefImages] = useState<BriefImage[]>([])
+  const [brief, setBrief] = useState<Brief | null>(null)
+  const [aiState, setAiState] = useState<AiState>("connecting")
   const [isJoining, setIsJoining] = useState(false)
-  const [joinError, setJoinError] = useState("")
-  const startedAtRef = useRef<number | null>(null)
-  const snapshotsRef = useRef<string[]>([])
-  const realtimeRef = useRef(createRealtimeTransport())
-
+  const [isEnding, setIsEnding] = useState(false)
+  const [error, setError] = useState("")
+  const [audioBlocked, setAudioBlocked] = useState(false)
+  const [now, setNow] = useState(Date.now())
+  const operation = useRef(0)
+  const joinLock = useRef(false)
+  const transport = useRef<RealtimeTransport | LocalTransport | null>(null)
+  const boot = useRef<Promise<Bootstrap> | null>(null)
   const media = useMediaSession()
-
-  const resetSession = useCallback(() => {
-    media.stopAll()
-    startedAtRef.current = null
-    snapshotsRef.current = []
-    setSnapshotCount(0)
-    setElapsed(0)
-    setAiState("speaking")
-    setIsJoining(false)
-    setJoinError("")
-  }, [media.stopAll])
-
-  const openPreflight = useCallback(() => {
-    resetSession()
-    setView("preflight")
-  }, [resetSession])
-
-  const returnHome = useCallback(() => {
-    realtimeRef.current.disconnect()
-    resetSession()
-    setView("landing")
-  }, [resetSession])
-
-  const joinCall = useCallback(async () => {
-    if (isJoining || media.microphoneStatus !== "ready" || media.screenStatus !== "ready") return
-    setIsJoining(true)
-    setJoinError("")
-    try {
-      await realtimeRef.current.connect()
-      startedAtRef.current = Date.now()
-      setElapsed(0)
-      setView("call")
-    } catch {
-      setJoinError("Не получилось начать созвон. Проверь подключение и попробуй снова.")
-    } finally {
-      setIsJoining(false)
-    }
-  }, [isJoining, media.microphoneStatus, media.screenStatus])
-
-  const endCall = useCallback(() => {
-    if (startedAtRef.current) {
-      setElapsed(Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)))
-    }
-    realtimeRef.current.disconnect()
-    media.stopAll()
-    startedAtRef.current = null
-    setView("feedback")
-  }, [media.stopAll])
+  const screenContext = useScreenContext(view === "call" && !isEnding && aiState !== "disconnected" ? session?.id ?? null : null, media.screenStream)
+  useEffect(() => { window.scrollTo(0, 0) }, [view])
 
   useEffect(() => {
-    if (view !== "call") return
-    const timer = window.setInterval(() => {
-      if (startedAtRef.current) {
-        setElapsed(Math.round((Date.now() - startedAtRef.current) / 1000))
+    if (view !== "landing" && view !== "history") return
+    const followSectionLink = () => {
+      const hash = window.location.hash
+      if (hash === "#history" || hash === "#studio" || !hash) {
+        setError("")
+        setView(hash === "#history" ? "history" : "landing")
       }
-    }, 1000)
-    return () => window.clearInterval(timer)
+    }
+    window.addEventListener("hashchange", followSectionLink)
+    return () => window.removeEventListener("hashchange", followSectionLink)
   }, [view])
 
+  const loadConfig = useCallback(async () => {
+    try { setConfig(await api.bootstrap()); setError("") } catch (cause) { setError(errorMessage(cause)) }
+  }, [])
   useEffect(() => {
-    if (view !== "call") return
+    let cancelled = false
+    boot.current ??= api.bootstrap()
+    void boot.current.then(value => { if (!cancelled) setConfig(value) }).catch(cause => { if (!cancelled) setError(errorMessage(cause)) })
+    return () => { cancelled = true }
+  }, [])
+  useEffect(() => () => { operation.current++; transport.current?.disconnect(); media.stopAll() }, [media.stopAll])
 
-    const timers: number[] = []
-    const listen = () => setAiState("listening")
-    const ask = () => {
-      setAiState("speaking")
-      timers.push(window.setTimeout(listen, 3200))
+  const reset = useCallback(() => {
+    operation.current++
+    window.history.replaceState(null, "", window.location.pathname)
+    transport.current?.disconnect(); transport.current = null
+    media.stopAll(); setSession(null); setError(""); setAudioBlocked(false)
+    setIsJoining(false); setIsEnding(false); joinLock.current = false
+  }, [media.stopAll])
+  const goHome = useCallback(() => { reset(); setView("landing"); window.history.replaceState(null, "", window.location.pathname) }, [reset])
+  const goHistory = useCallback(() => { reset(); setView("history"); window.history.replaceState(null, "", "#history") }, [reset])
+  const openPreflight = useCallback(() => { reset(); setView("preflight"); void loadConfig() }, [reset, loadConfig])
+
+  const connect = useCallback(async (resume = false) => {
+    if (joinLock.current || !media.microphoneStream || media.microphoneStatus !== "ready") return
+    joinLock.current = true
+    const current = ++operation.current
+    setIsJoining(true); setError(""); setAudioBlocked(false)
+    const Transport = config?.provider === "deepseek" ? LocalTransport : RealtimeTransport
+    const next = new Transport(event => {
+      if (current !== operation.current) return
+      if (event.type === "state") setAiState(event.state)
+      if (event.type === "audio-blocked") setAudioBlocked(event.blocked)
+      if (event.type === "error") setError(event.message)
+    })
+    transport.current?.disconnect()
+    transport.current = next
+    try {
+      if (resume && session) await api.interrupt(session.id)
+      const connected = await next.connect(media.microphoneStream, resume ? session?.id : undefined, resume ? undefined : brief?.id)
+      if (current !== operation.current) { next.disconnect(); void api.interrupt(connected.id).catch(() => undefined); return }
+      setSession(connected); setNow(Date.now()); setView("call")
+    } catch (cause) {
+      if (current === operation.current) { setError(errorMessage(cause)); setAiState("disconnected") }
+    } finally {
+      if (current === operation.current) { setIsJoining(false); joinLock.current = false }
     }
-
-    timers.push(window.setTimeout(listen, 3800))
-    const questionCycle = window.setInterval(ask, 18000)
-
-    return () => {
-      timers.forEach(window.clearTimeout)
-      window.clearInterval(questionCycle)
-    }
-  }, [view])
+  }, [media.microphoneStream, media.microphoneStatus, session, brief, config?.provider])
 
   useEffect(() => {
-    if (view !== "call" || !media.screenStream) return
+    if (view !== "call" || !media.microphoneStream) return
+    void transport.current?.replaceMicrophone(media.microphoneStream).catch(() => setError("Не удалось переключить микрофон. Подключись к созвону снова."))
+  }, [view, media.microphoneStream])
 
-    const video = document.createElement("video")
-    const canvas = document.createElement("canvas")
-    video.muted = true
-    video.playsInline = true
-    video.srcObject = media.screenStream
-    let captureTimer: number | null = null
-
-    const capture = () => {
-      if (!video.videoWidth || video.readyState < 2) return
-      canvas.width = 960
-      canvas.height = Math.round((video.videoHeight / video.videoWidth) * canvas.width)
-      const context = canvas.getContext("2d")
-      if (!context) return
-      context.drawImage(video, 0, 0, canvas.width, canvas.height)
-      snapshotsRef.current = [
-        ...snapshotsRef.current,
-        canvas.toDataURL("image/jpeg", 0.58),
-      ].slice(-24)
-      setSnapshotCount(snapshotsRef.current.length)
+  const endCall = useCallback(async (leaveNow = false) => {
+    if (!session || isEnding) return
+    const call = transport.current
+    if (isJoining) { operation.current++; call?.disconnect() }
+    const current = leaveNow ? ++operation.current : operation.current
+    setIsJoining(false); joinLock.current = false
+    setIsEnding(true); setError("")
+    media.microphoneStream?.getAudioTracks().forEach(track => { track.enabled = false })
+    media.stopScreen()
+    if (leaveNow) {
+      call?.stopOutput()
+      transport.current = null
+      setSession({ ...session, status: "finishing", endedAt: Date.now() })
+      setView("feedback")
+      window.history.replaceState(null, "", `#session=${session.id}`)
     }
-
-    const beginCapture = () => {
-      capture()
-      captureTimer = window.setInterval(capture, 5000)
+    try {
+      const flushed = call instanceof LocalTransport ? call.flush() : undefined
+      if (leaveNow) media.stopAll()
+      await flushed
+      const saved = await api.finish(session.id, !leaveNow && !isJoining && aiState !== "disconnected" && session.status === "live")
+      if (operation.current === current) setSession(saved)
+    } catch (cause) {
+      if (operation.current === current) {
+        setError(errorMessage(cause))
+        setSession(s => s ? { ...s, status: "interrupted", endedAt: s.endedAt ?? Date.now() } : null)
+      }
+    } finally {
+      call?.disconnect()
+      if (operation.current === current) {
+        operation.current++; transport.current = null; media.stopAll()
+        setIsEnding(false); setView("feedback")
+        window.history.replaceState(null, "", `#session=${session.id}`)
+      }
     }
+  }, [session, isEnding, isJoining, aiState, media.microphoneStream, media.stopScreen, media.stopAll])
 
-    video.addEventListener("loadeddata", beginCapture, { once: true })
-    video.play().catch(() => undefined)
-
-    return () => {
-      if (captureTimer) window.clearInterval(captureTimer)
-      video.pause()
-      video.srcObject = null
+  useEffect(() => {
+    if (view !== "call" || !session) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    let cancelled = false
+    let pending = false
+    const current = operation.current
+    const heartbeat = setInterval(async () => {
+      if (pending || isEnding) return
+      pending = true
+      try {
+        await api.heartbeat(session.id)
+        const latest = await api.session(session.id)
+        if (cancelled || current !== operation.current) return
+        setSession(latest)
+        if (latest.status === "interrupted") { transport.current?.disconnect(); setAiState("disconnected"); setError(latest.error ?? "") }
+        if (["finishing", "complete", "failed", "insufficient"].includes(latest.status)) { operation.current++; transport.current?.disconnect(); media.stopAll(); setError(""); setView("feedback"); window.history.replaceState(null, "", `#session=${session.id}`) }
+      } catch (cause) { if (!cancelled && current === operation.current) setError(errorMessage(cause)) }
+      finally { pending = false }
+    }, 3000)
+    const unload = () => {
+      media.stopAll(); transport.current?.disconnect()
+      void fetch(`/api/sessions/${session.id}/interrupt`, { method: "POST", headers: { "X-Proof-Client": "1" }, keepalive: true }).catch(() => undefined)
     }
-  }, [media.screenStream, view])
+    const confirmLeave = (event: BeforeUnloadEvent) => { event.preventDefault() }
+    window.addEventListener("pagehide", unload)
+    window.addEventListener("beforeunload", confirmLeave)
+    return () => { cancelled = true; clearInterval(timer); clearInterval(heartbeat); window.removeEventListener("pagehide", unload); window.removeEventListener("beforeunload", confirmLeave) }
+  }, [view, session?.id, isEnding, media.stopAll])
 
-  useEffect(() => () => media.stopAll(), [media.stopAll])
+  useEffect(() => {
+    if (view === "call" && session && config && !isEnding && now - session.createdAt >= config.maxDurationSeconds * 1000) void endCall()
+  }, [now, config, session, view, isEnding, endCall])
 
+  useEffect(() => {
+    if (view === "call" && session && media.screenStatus === "ended" && !isEnding) void api.screenStopped(session.id).catch(() => undefined)
+  }, [view, session?.id, media.screenStatus, isEnding])
+
+  const openSession = useCallback(async (id: string) => {
+    reset()
+    try { const saved = await api.session(id); setSession(saved); setView("feedback"); window.history.replaceState(null, "", `#session=${id}`) }
+    catch (cause) { setError(errorMessage(cause)) }
+  }, [reset])
+  useEffect(() => {
+    if (!config) return
+    const id = /^#session=([a-f0-9-]{36})$/.exec(window.location.hash)?.[1]
+    if (id) void openSession(id)
+  }, [Boolean(config), openSession])
+
+  useEffect(() => {
+    if (view !== "feedback" || isEnding || !session || session.status !== "finishing") return
+    let cancelled = false
+    let pending = false
+    const timer = setInterval(async () => {
+      if (pending) return
+      pending = true
+      try { const latest = await api.session(session.id); if (!cancelled) { setSession(latest); setError("") } }
+      catch (cause) { if (!cancelled) setError(errorMessage(cause)) }
+      finally { pending = false }
+    }, 2000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [view, isEnding, session?.id, session?.status])
+
+  const retryFeedback = async () => {
+    if (!session) return
+    setError("")
+    try {
+      if (transport.current instanceof LocalTransport) await transport.current.flush()
+      setSession(await api.finish(session.id))
+    } catch (cause) { setError(errorMessage(cause)) }
+  }
+  const duration = session ? formatDuration(((session.endedAt ?? now) - session.createdAt) / 1000) : "00:00"
   return (
     <>
-      <a href="#main-content" className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-zinc-950 px-4 py-2 text-sm text-white transition-transform focus:translate-y-0">
-        Перейти к содержанию
-      </a>
+      <a href="#main-content" className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-zinc-950 px-4 py-2 text-sm text-white focus:translate-y-0">Перейти к содержанию</a>
+      <Suspense fallback={<main id="main-content" role="status" className="archive-main">Открываем экран…</main>}>
       <AnimatePresence mode="wait" initial={false}>
-        {view === "landing" && <LandingPage key="landing" onStart={openPreflight} />}
-        {view === "preflight" && (
-          <PreflightPage
-            key="preflight"
-            microphoneStatus={media.microphoneStatus}
-            screenStatus={media.screenStatus}
-            microphoneError={media.microphoneError}
-            screenError={media.screenError}
-            joinError={joinError}
-            isJoining={isJoining}
-            screenStream={media.screenStream}
-            onRequestMicrophone={media.requestMicrophone}
-            onRequestScreen={media.requestScreen}
-            onBack={returnHome}
-            onJoin={joinCall}
-          />
-        )}
-        {view === "call" && (
-          <CallPage
-            key="call"
-            duration={formatDuration(elapsed)}
-            aiState={aiState}
-            microphoneEnabled={media.microphoneEnabled}
-            screenStatus={media.screenStatus}
-            screenStream={media.screenStream}
-            onToggleMicrophone={media.toggleMicrophone}
-            onRequestScreen={media.requestScreen}
-            onStopScreen={media.stopScreen}
-            onEnd={endCall}
-          />
-        )}
-        {view === "feedback" && (
-          <FeedbackPage
-            key="feedback"
-            duration={formatDuration(elapsed)}
-            snapshotCount={snapshotCount}
-            onRepeat={openPreflight}
-            onHome={returnHome}
-          />
-        )}
+        {view === "landing" && <LandingPage maxMinutes={Math.round((config?.maxDurationSeconds ?? 1200) / 60)} key="landing" onStart={openPreflight} />}
+        {view === "preflight" && <PreflightPage key="preflight" microphoneStatus={media.microphoneStatus} screenStatus={media.screenStatus} microphoneError={media.microphoneError} screenError={media.screenError} joinError={error} isJoining={isJoining} screenStream={media.screenStream} onRequestMicrophone={media.requestMicrophone} onRequestScreen={media.requestScreen} onBack={goHome} onJoin={() => { void connect() }} config={config} onRefreshConfig={loadConfig} briefText={briefText} briefImages={briefImages} onBriefImages={setBriefImages} brief={brief} onBriefText={setBriefText} onPreparedBrief={setBrief} />}
+        {view === "call" && <CallPage key="call" duration={duration} aiState={aiState} microphoneEnabled={media.microphoneEnabled} screenStatus={media.screenStatus} screenStream={media.screenStream} onToggleMicrophone={media.microphoneStatus === "ready" ? media.toggleMicrophone : () => { void media.requestMicrophone() }} onRequestScreen={media.requestScreen} onStopScreen={media.stopScreen} onEnd={() => { void endCall(true) }} error={error || media.microphoneError || screenContext.error || media.screenError} audioBlocked={audioBlocked} onPlayAudio={() => { void transport.current?.playAudio() }} onReconnect={() => { void connect(true) }} isJoining={isJoining} isEnding={isEnding} screenSent={screenContext.sent} stage={session?.stage ?? "intro"} />}
+        {view === "feedback" && session && <FeedbackPage key="feedback" session={session} error={error} onRetry={retryFeedback} onRepeat={openPreflight} onHome={goHome} onBack={goHistory} onDelete={async () => { try { await api.delete(session.id); goHome() } catch (cause) { setError(errorMessage(cause)) } }} />}
+        {view === "history" && <HistoryPage key="history" onOpen={id => { void openSession(id) }} onHome={goHome} onStart={openPreflight} error={error} />}
       </AnimatePresence>
+      </Suspense>
     </>
   )
 }
-
 export default App

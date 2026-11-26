@@ -1,18 +1,20 @@
-import { Clock3, Loader2, Mic, MicOff, MonitorUp, PhoneOff, ShieldCheck } from "lucide-react"
+import { Clock3, Loader2, Mic, MicOff, MonitorUp, PhoneOff, ShieldCheck, Volume2, RefreshCcw } from "lucide-react"
 import { motion } from "motion/react"
-import type { ReactNode } from "react"
-import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownTrigger, DropdownContent } from "@/components/ui/dropdown"
+import { MenuItem } from "@/components/ui/menu-item"
+import { VoicePortrait } from "@/components/voice-portrait"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Logo } from "@/components/logo"
+import { WorkspaceHeader } from "@/components/workspace-header"
+import { spring } from "@/lib/springs"
 import { StreamVideo } from "@/components/stream-video"
 import type { DeviceStatus } from "@/hooks/use-media-session"
 import { cn } from "@/lib/utils"
 
-type AiState = "speaking" | "listening"
+import type { AiState } from "@/lib/realtime"
+import { stageLabels, type InterviewStage } from "@/lib/methodology"
 
 type CallPageProps = {
+  stage: InterviewStage
   duration: string
   aiState: AiState
   microphoneEnabled: boolean
@@ -22,38 +24,13 @@ type CallPageProps = {
   onRequestScreen: () => void
   onStopScreen: () => void
   onEnd: () => void
-}
-
-type CallControlProps = {
-  label: string
-  active?: boolean
-  disabled?: boolean
-  onClick: () => void
-  children: ReactNode
-}
-
-function CallControl({ label, active = false, disabled = false, onClick, children }: CallControlProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onClick}
-          disabled={disabled}
-          aria-label={label}
-          className={cn(
-            "size-12 rounded-full border-0 text-white transition-colors duration-150",
-            active ? "bg-white text-zinc-950 hover:bg-white/90" : "bg-white/10 hover:bg-white/18 hover:text-white",
-          )}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={10}>{label}</TooltipContent>
-    </Tooltip>
-  )
+  error: string
+  audioBlocked: boolean
+  onPlayAudio: () => void
+  onReconnect: () => void
+  isJoining: boolean
+  isEnding: boolean
+  screenSent: boolean
 }
 
 export function CallPage({
@@ -66,90 +43,79 @@ export function CallPage({
   onRequestScreen,
   onStopScreen,
   onEnd,
+  error, audioBlocked, onPlayAudio, onReconnect, isJoining, isEnding, screenSent, stage,
 }: CallPageProps) {
   const screenIsLive = screenStatus === "ready" && Boolean(screenStream)
 
   return (
     <motion.div
-      className="flex min-h-svh flex-col overflow-hidden bg-[#f2f2ef]"
+      className="call-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.24 }}
+      transition={spring.slow}
     >
-      <header className="flex h-20 shrink-0 items-center justify-between px-5 sm:px-8">
-        <Logo />
+      <WorkspaceHeader context="Защита тестового">
         <div className="flex items-center gap-2 sm:gap-3">
-          {screenIsLive && <Badge variant="outline" className="hidden h-8 rounded-full bg-white/60 px-3 font-normal sm:flex"><span className="size-1.5 rounded-full bg-emerald-500" /> Экран демонстрируется</Badge>}
-          <Badge variant="outline" className="h-8 rounded-full bg-white/60 px-3 font-normal"><ShieldCheck className="size-3" /> Без записи</Badge>
-          <span className="flex min-w-[62px] items-center gap-1.5 text-sm tabular-nums text-muted-foreground"><Clock3 className="size-3.5" /> {duration}</span>
+          <DropdownMenu>
+            <DropdownTrigger render={<Button variant="tertiary" leadingIcon={microphoneEnabled ? Mic : MicOff}>
+              Микрофон и экран
+              {screenIsLive && <span className="size-1.5 rounded-full bg-neutral-500" aria-label="Экран демонстрируется" />}
+            </Button>} />
+            <DropdownContent align="end" collisionPadding={10} className="w-60">
+              <MenuItem index={0} icon={microphoneEnabled ? MicOff : Mic}
+                label={microphoneEnabled ? "Выключить микрофон" : "Включить микрофон"} onSelect={onToggleMicrophone} disabled={isEnding} />
+              <MenuItem index={1} icon={MonitorUp} label={screenIsLive ? "Остановить показ" : "Показать экран"}
+                onSelect={screenIsLive ? onStopScreen : onRequestScreen} disabled={isEnding || screenStatus === "requesting"} />
+            </DropdownContent>
+          </DropdownMenu>
+          <span className="flex min-w-[62px] items-center gap-1.5 text-sm tabular-nums text-current/75"><Clock3 className="size-3.5" /> {duration}</span>
         </div>
-      </header>
+      </WorkspaceHeader>
 
-      <main id="main-content" className="relative flex min-h-0 flex-1 items-center justify-center px-4 pb-28 sm:px-8 sm:pb-32">
-        <section className="relative flex h-[calc(100svh-13rem)] min-h-[420px] w-full max-h-[760px] max-w-[1180px] items-center justify-center overflow-hidden rounded-3xl bg-[#e8e8e3] ring-1 ring-zinc-950/7">
-          <div className="flex -translate-y-3 flex-col items-center px-5 text-center">
-            <motion.div
-              animate={aiState === "speaking" ? { scale: [1, 1.025, 1] } : { scale: 1 }}
-              transition={aiState === "speaking" ? { duration: 2.2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
-              className={cn(
-                "rounded-full p-2 transition-shadow duration-300",
-                aiState === "speaking" && "shadow-[0_0_0_8px_rgba(37,99,235,0.08),0_0_0_18px_rgba(37,99,235,0.04)]",
-              )}
-            >
-              <Avatar className="size-28 ring-0 after:border-0 sm:size-36">
-                <AvatarFallback className="bg-zinc-950 font-heading text-4xl font-semibold text-white sm:text-5xl">P</AvatarFallback>
-                <AvatarBadge className="right-2 bottom-2 size-4 bg-emerald-500 ring-4 ring-[#e8e8e3] sm:size-5" />
-              </Avatar>
-            </motion.div>
-            <h1 className="mt-6 font-heading text-xl font-semibold tracking-[-0.035em] sm:text-2xl">Proof mentor</h1>
-            <div className="mt-2 flex h-7 items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-              {aiState === "speaking" ? (
-                <><span className="voice-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>Задаю вопрос</span></>
+      <main id="main-content" className="call-main">
+        <section className="call-stage">
+          <div className="call-person"><VoicePortrait /></div>
+          <div className="call-info">
+            <p className="call-role">AI-дизайн-лид</p>
+            <h1>Денис</h1>
+            <p className="mt-2 text-xs font-medium uppercase tracking-wider text-current/75" aria-live="polite">{stageLabels[isEnding ? "closing" : stage]}</p>
+            <div className="mt-2 flex h-7 items-center gap-2 text-sm text-current/75" aria-live="polite">
+              {audioBlocked ? <span>Звук на паузе</span> : aiState === "speaking" ? (
+                <><span className="voice-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>{isEnding || stage === "closing" ? "Прощаюсь с тобой" : stage === "intro" ? "Приветствую тебя" : stage === "questions" ? "Задаю вопрос" : "Говорю"}</span></>
+              ) : aiState === "listening" ? (
+                <><span className="size-2 animate-pulse rounded-full bg-white" /><span>{isEnding ? "Завершаем разговор" : "Слушаю тебя"}</span></>
               ) : (
-                <><span className="size-2 animate-pulse rounded-full bg-brand" /><span>Слушаю тебя</span></>
+                <><span className={cn("size-2 rounded-full", aiState === "disconnected" ? "bg-white" : "bg-neutral-400")} /><span>{aiState === "connecting" ? "Подключаемся к интервьюеру" : aiState === "thinking" ? (stage === "intro" ? "Готовлю приветствие" : "Обдумываю ответ") : "Соединение прервано"}</span></>
               )}
             </div>
+            {!isEnding && aiState !== "disconnected" && stage === "presentation" && <p className="mt-5 max-w-sm text-sm leading-6 text-current/75">Расскажи о работе. Когда закончишь показ, скажи Денису, что готов к вопросам.</p>}
+            {!isEnding && aiState !== "disconnected" && stage === "wrap_up" && <p className="mt-4 max-w-sm text-sm leading-6 text-current/75">Можно дополнить ответ или сказать, что добавлять нечего. Затем подготовим разбор.</p>}
+            {audioBlocked && <Button onClick={onPlayAudio} className="mt-5"><Volume2 /> Включить звук интервьюера</Button>}
+            {(aiState === "disconnected" || error) && <div className="mt-5 max-w-md space-y-3"><p role="alert" className="text-sm leading-6 text-white/85">{error || "Связь с интервьюером потеряна. Уже полученные реплики сохранены."}</p><Button variant="primary" onClick={onReconnect} disabled={isJoining || isEnding}>{isJoining ? <Loader2 className="animate-spin" /> : <RefreshCcw />} Подключиться снова</Button></div>}
+            {isEnding && <p role="status" className="mt-5 flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Разбор откроется после прощания.</p>}
           </div>
 
           {screenIsLive && (
             <motion.div
-              className="absolute bottom-5 right-5 hidden w-[230px] overflow-hidden rounded-2xl bg-zinc-900 shadow-xl ring-1 ring-black/15 sm:block lg:w-[290px]"
+              className="screen-preview"
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={spring.moderate}
             >
               <div className="aspect-video bg-zinc-900"><StreamVideo stream={screenStream} className="size-full object-contain" /></div>
-              <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-white/70"><span className="size-1.5 rounded-full bg-emerald-400" /> Вы показываете экран</div>
+              <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-white/70"><span className={cn("size-1.5 rounded-full", screenSent ? "bg-white" : "bg-neutral-400")} /> {screenSent ? "Кадр экрана получен" : "Передаём кадр экрана…"}</div>
             </motion.div>
           )}
 
-          {!screenIsLive && (
-            <Button variant="outline" className="absolute bottom-5 right-5 hidden h-10 rounded-full bg-white/70 px-4 text-xs sm:flex" onClick={onRequestScreen}>
-              <MonitorUp /> Показать экран снова
-            </Button>
-          )}
         </section>
       </main>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-20 flex justify-center px-4 sm:bottom-8">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-zinc-950 p-2.5 shadow-[0_18px_50px_-18px_rgba(0,0,0,0.55)] ring-1 ring-white/10">
-          <CallControl label={microphoneEnabled ? "Выключить микрофон" : "Включить микрофон"} active={microphoneEnabled} onClick={onToggleMicrophone}>
-            {microphoneEnabled ? <Mic className="size-4" /> : <MicOff className="size-4" />}
-          </CallControl>
-          <CallControl label={screenIsLive ? "Остановить демонстрацию" : "Показать экран"} active={screenIsLive} disabled={screenStatus === "requesting"} onClick={screenIsLive ? onStopScreen : onRequestScreen}>
-            {screenStatus === "requesting" ? <Loader2 className="size-4 animate-spin" /> : <MonitorUp className="size-4" />}
-          </CallControl>
-          <div className="mx-1 h-6 w-px bg-white/12" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" onClick={onEnd} className="h-12 rounded-full bg-red-600 px-5 text-white hover:bg-red-500" aria-label="Завершить созвон">
-                <PhoneOff className="size-4" /><span className="hidden sm:inline">Завершить</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={10}>Завершить созвон</TooltipContent>
-          </Tooltip>
-        </div>
+      <div className="call-dock">
+        <span><ShieldCheck size={15} /> Без видеозаписи</span>
+        <Button type="button" variant="primary" onClick={onEnd} disabled={isEnding} className="h-12 px-6">
+          <PhoneOff className="size-4" />Покинуть звонок
+        </Button>
       </div>
     </motion.div>
   )
