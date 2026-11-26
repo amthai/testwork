@@ -5,7 +5,7 @@ import { VoiceAvatar } from "@/components/voice-avatar"
 
 const stages = [
   { title: "Добавь задание", text: "Вставь текст работодателя или прикрепи скриншоты с условиями." },
-  { title: "Представь решение", text: "Покажи макеты и ответь голосом на вопросы дизайн-лида." },
+  { title: "Представь решение", text: "Покажи макеты и обсуди решения с интервьюерами." },
   { title: "Изучи разбор", text: "Вернись к своим ответам и посмотри, какие аргументы стоит усилить." },
 ]
 
@@ -17,7 +17,7 @@ export function LandingPage({ onStart, maxMinutes }: { onStart: () => void; maxM
         <div className="hero-copy">
 
           <h1 id="studio-title">Защити тестовое<br />до собеседования</h1>
-          <p>Покажи макеты AI-дизайн-лиду, ответь на вопросы голосом и узнай, как убедительнее представить свою работу.</p>
+          <p>Покажи макеты дизайн-лиду Денису. На защите к нему могут подключиться продакт-менеджер, CPO и системный аналитик. После разговора получишь разбор.</p>
           <div className="hero-actions">
             <Button className="hero-start" trailingIcon={ArrowRight} onClick={onStart}>Начать защиту</Button>
           </div>

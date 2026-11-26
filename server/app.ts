@@ -113,9 +113,21 @@ export async function buildApp(config: Config, options: { store?: Store; provide
     const update = await call.poll(after)
     if (call.format && update.audioId && update.audioId !== known) {
       const stream = call.stream(update.audioId)
-      if (stream) return reply.type(streamType).header("X-Accel-Buffering", "no").header("X-Proof-Revision", update.revision).header("X-Proof-Audio", update.audioId).send(stream)
+      if (stream) return reply.type(streamType).header("X-Accel-Buffering", "no").header("X-Proof-Revision", update.revision).header("X-Proof-Audio", update.audioId).header("X-Proof-Speaker", update.speaker ?? "design_lead").send(stream)
     }
     return update
+  })
+  const expertTurn = z.object({ turn: z.string().regex(/^expert_[a-f0-9]{24}$/) })
+  app.get("/api/sessions/:id/expert-audio/:turn", async (request, reply) => {
+    const { turn } = expertTurn.parse(request.params)
+    const speech = sessions.expertSpeech(ownedSession(request).id).audio(turn)
+    return reply.type("audio/mpeg").header("X-Proof-Speaker", speech.speaker).send(speech.audio)
+  })
+  app.post("/api/sessions/:id/expert-audio/:turn/playback", async request => {
+    const { turn } = expertTurn.parse(request.params)
+    const { state } = z.object({ state: z.enum(["started", "ended", "interrupted", "failed"]) }).strict().parse(request.body)
+    sessions.expertSpeech(ownedSession(request).id).playback(turn, state)
+    return { ok: true }
   })
   app.get("/api/sessions/:id/voice/:turn", async (request, reply) => {
     const { turn } = voiceTurn.parse(request.params)

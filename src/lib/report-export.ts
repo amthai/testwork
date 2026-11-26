@@ -1,3 +1,4 @@
+import { speakerLabel } from "./interviewers.js"
 import { areaLabels, assignmentQuotes, basisLabels, coverageLabels, findingLabels } from "./methodology"
 import { formatDuration, type DefenseSession } from "./session"
 
@@ -31,6 +32,6 @@ export function reportMarkdown(session: DefenseSession) {
     }
     lines.push("## Следующая попытка", "", ...feedback.nextSteps.map(step => `- ${step}`), "", "## Ограничения", "", ...feedback.limitations.map(item => `- ${item}`), "")
   }
-  lines.push("## Расшифровка", "", ...transcript.map(item => `[${stamp(item.at)}] ${item.role === "user" ? "Ты" : "Proof"}${item.interrupted ? " (реплика прервана; часть текста могла не прозвучать)" : ""}: ${item.text}`))
+  lines.push("## Расшифровка", "", ...transcript.map(item => `[${stamp(item.at)}] ${item.role === "user" ? "Ты" : speakerLabel(item.speaker)}${item.interrupted ? " (реплика прервана; часть текста могла не прозвучать)" : ""}: ${item.text}`))
   return lines.join("\n")
 }

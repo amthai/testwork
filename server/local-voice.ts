@@ -6,10 +6,12 @@ import { AppError } from "./errors.js"
 import type { TurnPlan } from "../src/lib/methodology.js"
 
 import type { DefenseSession } from "../src/lib/session.js"
+import type { InterviewerId } from "../src/lib/interviewers.js"
+import { interviewerProfiles } from "../src/lib/roles/team.js"
 import { isBriefQuestion, type Dialogue } from "./methodology/dialogue.js"
 
-type InterviewContext = Pick<DefenseSession, "stage" | "brief" | "questions" | "transcript"> & { remainingSeconds: number; participantName?: string | null }
-type Turn = { id: string; token: string; abort: AbortController; text?: string; audio?: Buffer; stream?: SpeechStream; spokenReply?: boolean; started: boolean }
+type InterviewContext = Pick<DefenseSession, "stage" | "brief" | "questions" | "transcript"> & { remainingSeconds: number; participantName?: string | null; interviewerId?: InterviewerId }
+type Turn = { id: string; token: string; speaker: InterviewerId; abort: AbortController; text?: string; audio?: Buffer; stream?: SpeechStream; spokenReply?: boolean; started: boolean }
 type Compose = (context: InterviewContext, instructions: string, signal: AbortSignal) => Promise<string>
 type Plan = (context: InterviewContext, correction: string, frame: { id: string; image: string } | null, signal: AbortSignal) => Promise<TurnPlan>
 type Route = (context: InterviewContext, frame: { id: string; image: string } | null, signal: AbortSignal, preview?: (text: string) => void) => Promise<Dialogue>
@@ -43,7 +45,7 @@ export class LocalVoiceCall {
     if (this.closed) throw new AppError(409, "disconnected", "Соединение закрыто.")
     const t = this.current
     const ready = t?.stream || t?.audio
-    return { revision: this.revision, state: t ? ready ? "speaking" : "thinking" : "listening", audioId: ready ? t.id : null }
+    return { revision: this.revision, state: t ? ready ? "speaking" : "thinking" : "listening", audioId: ready ? t.id : null, speaker: ready ? t.speaker : null }
   }
   stream(id: string) {
     return this.current?.id === id ? this.current.stream?.open() : null
@@ -53,7 +55,7 @@ export class LocalVoiceCall {
     return this.current.audio
   }
   private done(t: Turn, status: string, output: object[] = []) {
-    this.emit({ type: "response.done", response: { id: t.id, status, metadata: { proof_turn: t.token }, output } })
+    this.emit({ type: "response.done", response: { id: t.id, status, metadata: { proof_turn: t.token, speaker: t.speaker }, output } })
   }
   private cancel() {
     const t = this.current
@@ -70,8 +72,8 @@ export class LocalVoiceCall {
     if (!t || t.id !== id || !(t.audio || t.stream)) return
     if (state === "started" && !t.started) {
       t.started = true
-      this.emit({ type: "response.output_item.added", item: { id, role: "assistant" } })
-      this.emit({ type: "response.output_audio_transcript.done", response_id: id, item_id: id, transcript: t.text })
+      this.emit({ type: "response.output_item.added", item: { id, role: "assistant", speaker: t.speaker } })
+      this.emit({ type: "response.output_audio_transcript.done", response_id: id, item_id: id, transcript: t.text, speaker: t.speaker })
     }
     if (state === "interrupted" && t.started) {
       this.cancel()
@@ -84,11 +86,11 @@ export class LocalVoiceCall {
       this.changed()
     }
   }
-  turn(token: string, context: InterviewContext, correction: string, spoken?: string, dialogue = false, compose = false) {
+  turn(token: string, context: InterviewContext, correction: string, spoken?: string, dialogue = false, compose = false, speaker: InterviewerId = "design_lead") {
     this.cancel()
-    const t: Turn = { id: randomUUID(), token, abort: new AbortController(), text: spoken, started: false }
+    const t: Turn = { id: randomUUID(), token, speaker, abort: new AbortController(), text: spoken, started: false }
     this.current = t
-    this.emit({ type: "response.created", response: { id: t.id, metadata: { proof_turn: token } } })
+    this.emit({ type: "response.created", response: { id: t.id, metadata: { proof_turn: token, speaker } } })
     this.changed()
     void this.generate(t, context, correction, dialogue, compose).catch(() => {
       if (this.current !== t || this.closed) return
@@ -98,13 +100,14 @@ export class LocalVoiceCall {
       this.changed()
     })
   }
-  private async *synthesize(text: string, signal: AbortSignal) {
+  private async *synthesize(text: string, speaker: InterviewerId, signal: AbortSignal) {
+    const profile = interviewerProfiles[speaker]
     if (this.yandexKey !== undefined) {
-      yield* yandexSpeech(text, this.yandexKey, signal, Boolean(this.format))
+      yield* yandexSpeech(text, this.yandexKey, signal, Boolean(this.format), profile.yandexVoice)
       return
     }
     const response = await fetch(new URL("/synthesize", this.url), {
-      method: "POST", body: text, signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
+      method: "POST", headers: { "X-Piper-Voice": profile.piperVoice }, body: text, signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
     })
     if (!response.ok) throw unavailable()
     const wav = Buffer.from(await response.arrayBuffer())
@@ -112,7 +115,7 @@ export class LocalVoiceCall {
     yield wav
   }
   private async generate(t: Turn, context: InterviewContext, correction: string, dialogue: boolean, compose: boolean) {
-    const synthesize = (text: string) => this.synthesize(text, t.abort.signal)
+    const synthesize = (text: string) => this.synthesize(text, t.speaker, t.abort.signal)
     const split = this.yandexKey !== undefined ? nextYandexPhrase : nextPhrase
     const publish = (text: string, final: boolean) => {
       if (this.current !== t || !this.format) return
@@ -121,7 +124,7 @@ export class LocalVoiceCall {
       t.stream ??= new SpeechStream(this.format, synthesize, t.abort.signal, split)
       t.stream.update(text, final)
       if (fresh) this.changed()
-      if (final && t.started) this.emit({ type: "response.output_audio_transcript.done", response_id: t.id, item_id: t.id, transcript: text })
+      if (final && t.started) this.emit({ type: "response.output_audio_transcript.done", response_id: t.id, item_id: t.id, transcript: text, speaker: t.speaker })
     }
     if (compose && this.compose) {
       try {

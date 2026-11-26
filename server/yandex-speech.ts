@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { interviewerProfiles } from "../src/lib/roles/team.js"
 
 const sampleRate = 24_000
 const message = z.object({
@@ -46,12 +47,12 @@ async function* jsonLines(body: NonNullable<Response["body"]>) {
   if (rest.trim()) yield rest
 }
 
-export async function* yandexSpeech(text: string, key: string, signal: AbortSignal, streaming: boolean) {
+export async function* yandexSpeech(text: string, key: string, signal: AbortSignal, streaming: boolean, voice: { voice: string; role: string } = interviewerProfiles.design_lead.yandexVoice) {
   const response = await fetch("https://tts.api.cloud.yandex.net/tts/v3/utteranceSynthesis", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Api-Key ${key}` },
     body: JSON.stringify({
-      text, model: "livetts", hints: [{ voice: "denis" }, { role: "casual" }],
+      text, model: "livetts", hints: [{ voice: voice.voice }, { role: voice.role }],
       outputAudioSpec: { rawAudio: { audioEncoding: "LINEAR16_PCM", sampleRateHertz: String(sampleRate) } },
       unsafeMode: true,
     }),

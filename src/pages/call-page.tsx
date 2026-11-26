@@ -8,9 +8,11 @@ import type { DeviceStatus } from "@/hooks/use-media-session"
 import { cn } from "@/lib/utils"
 
 import type { AiState } from "@/lib/realtime"
+import { interviewerNames, interviewerLabels, type InterviewerId } from "@/lib/interviewers"
 import { stageLabels, type InterviewStage } from "@/lib/methodology"
 
 type CallPageProps = {
+  speaker: InterviewerId
   stage: InterviewStage
   duration: string
   aiState: AiState
@@ -31,7 +33,7 @@ type CallPageProps = {
 }
 
 export function CallPage({
-  duration,
+  duration, speaker,
   aiState,
   microphoneEnabled,
   screenStatus,
@@ -61,10 +63,10 @@ export function CallPage({
 
       <main id="main-content" className="call-main">
         <section className="call-stage">
-          <VoiceAvatar filled />
+          <VoiceAvatar filled speaker={speaker} />
           <div className="call-info">
-            <p className="call-role">AI-дизайн-лид</p>
-            <h1>Денис</h1>
+            <p className="call-role">{interviewerLabels[speaker]}</p>
+            <h1 aria-live="polite">{interviewerNames[speaker]}</h1>
             {(isEnding || stage !== "presentation") && <p className="mt-2 text-sm font-medium uppercase tracking-wider text-current/75" aria-live="polite">{stageLabels[isEnding ? "closing" : stage]}</p>}
             <div className="mt-2 flex h-7 items-center gap-2 text-sm text-current/75" aria-live="polite">
               {audioBlocked ? <span>Звук на паузе</span> : aiState === "speaking" ? (

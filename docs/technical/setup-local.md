@@ -15,9 +15,9 @@ npm run dev
 
 В `.env.local` установи `PROOF_PROVIDER=deepseek` и задай `DEEPSEEK_API_KEY`. Сервер использует `deepseek-flash` через Responses API. При пустом ключе UI показывает недоступность AI. Если выбор провайдера не задан, ключ DeepSeek имеет приоритет. Установка только с ключом OpenAI продолжает использовать Realtime.
 
-Для голоса из production задай `PROOF_TTS_PROVIDER=yandex` и серверный `YANDEX_SPEECHKIT_API_KEY`. Используется LiveTTS с голосом `denis` и амплуа `casual`. Сервисному аккаунту нужна роль `ai.speechkit-tts.user`, ключу — область `yc.ai.speechkitTts.execute`. В локальном режиме по умолчанию используется `PROOF_TTS_PROVIDER=piper`. GigaAM нужен в обоих режимах.
+Для озвучки Яндекс LiveTTS задай `PROOF_TTS_PROVIDER=yandex` и серверный `YANDEX_SPEECHKIT_API_KEY`. Голос и амплуа сервер берёт из профиля автора реплики. Сервисному аккаунту нужна роль `ai.speechkit-tts.user`, ключу — область `yc.ai.speechkitTts.execute`. В локальном режиме по умолчанию используется `PROOF_TTS_PROVIDER=piper`. GigaAM нужен в обоих режимах.
 
-Для локального речевого сервиса нужен Python 3.11. Один раз подготовь окружение и скачай веса (около 288 МБ). По умолчанию они хранятся в `~/.cache/proof/speech`. Другой путь можно указать через `PROOF_MODELS`. Загрузчик проверяет SHA-256.
+Для локального речевого сервиса нужен Python 3.11. Один раз подготовь окружение и скачай веса распознавания и четырёх голосов (всего около 480 МБ). По умолчанию они хранятся в `~/.cache/proof/speech`. Другой путь можно указать через `PROOF_MODELS`. Загрузчик проверяет SHA-256.
 
 ```bash
 python3.11 -m venv "$HOME/.local/share/proof-speech/venv"
@@ -28,7 +28,7 @@ python3.11 -m venv "$HOME/.local/share/proof-speech/venv"
 
 В другом терминале запусти `npm run dev`. Fastify обращается к речи по `SPEECH_URL` (по умолчанию `http://127.0.0.1:8078`). Процесс слушает loopback и после загрузки весов работает офлайн. Аудио обрабатывается в памяти. Для браузерного захвата нужны Web Audio, AudioWorklet и HTTPS либо localhost.
 
-[GigaAM (MIT)](https://huggingface.co/ai-sage/GigaAM-v3) · [Piper (GPL-3.0)](https://github.com/OHF-Voice/piper1-gpl) · [Голос Denis и обучающие данные](https://huggingface.co/rhasspy/piper-voices/blob/main/ru/ru_RU/denis/medium/MODEL_CARD) · [Цены DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/)
+[GigaAM (MIT)](https://huggingface.co/ai-sage/GigaAM-v3) · [Piper (GPL-3.0)](https://github.com/OHF-Voice/piper1-gpl) · [Голоса Denis и Dmitri](https://huggingface.co/rhasspy/piper-voices/tree/main/ru/ru_RU) · [Голоса Mari и Terra](https://huggingface.co/rraaww/ru_piper) · [Цены DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/)
 
 ## Настройки
 
@@ -67,9 +67,20 @@ npm start
 
 Тестовые провайдеры используются исключительно в tests/. В runtime mock-режима и резервных статичных результатов нет.
 
-## Методология дизайн-лида
+## Профили и голоса команды
 
-Рабочие инструкции: server/methodology/rules.ts. Они компилируются вместе с backend и входят в Docker image без отдельного копирования markdown. В режиме OpenAI параметр OPENAI_FEEDBACK_MODEL используется для распознавания фото и итогового отчёта. Вопросы планирует Realtime через function calling.
+В файле каждой роли меняются правила участия и голос для каждого режима. Рабочие инструкции компилируются вместе с сервером и входят в Docker-образ. [Файлы всех ролей](../product/design-lead.md).
+
+| Автор | LiveTTS, голос / амплуа | Piper | OpenAI |
+|---|---|---|---|
+| Денис, дизайн-лид | `denis` / `casual` | `denis` | `marin` |
+| Марина, продакт-менеджер | `sofia` / `casual` | `mari` | `coral` |
+| Ирина, CPO | `irina` / `neutral` | `terra` | `sage` |
+| Сергей, системный аналитик | `sergey` / `support` | `dmitri` | `ash` |
+
+В режиме DeepSeek речевой сервис использует GigaAM для распознавания участника, а Piper загружает выбранную модель синтеза по мере надобности. Если кеш остался от установки с одним голосом, `speech/models.py` при повторном запуске докачает недостающие файлы. Для облачной озвучки используется модель `livetts` Яндекса. [Поддерживаемые голоса и амплуа](https://aistudio.yandex.ru/ru/docs/speechkit/tts/voices).
+
+В режиме OpenAI Денис говорит через Realtime, а реплики трёх коллег озвучивает `gpt-4o-mini-tts` через Audio Speech API. Используется тот же серверный ключ OpenAI. Параметр `OPENAI_FEEDBACK_MODEL` задаёт модель для распознавания фото и итогового отчёта. План очередного вопроса Realtime передаёт серверу через вызов инструмента.
 
 Перед звонком обязателен подготовленный бриф. Анализ: до 2 × MAX_OWNER_DAILY_SESSIONS на профиль и 2 × MAX_DAILY_SESSIONS суммарно за сутки; одновременно не более MAX_CONCURRENT_SESSIONS подготовок. Бриф хранится отдельно 24 часа, копия — в сессии по RETENTION_DAYS.
 

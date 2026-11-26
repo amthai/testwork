@@ -8,6 +8,7 @@ import { LocalTransport } from "@/lib/local-transport"
 import { RealtimeTransport, type AiState } from "@/lib/realtime"
 import { api, errorMessage } from "@/lib/api"
 import { formatDuration, type Bootstrap, type DefenseSession } from "@/lib/session"
+import type { InterviewerId } from "@/lib/interviewers"
 import type { Brief, BriefImage } from "@/lib/methodology"
 
 const PreflightPage = lazy(() => import("@/pages/preflight-page").then(module => ({ default: module.PreflightPage })))
@@ -24,6 +25,7 @@ function App() {
   const [briefText, setBriefText] = useState("")
   const [briefImages, setBriefImages] = useState<BriefImage[]>([])
   const [brief, setBrief] = useState<Brief | null>(null)
+  const [speaker, setSpeaker] = useState<InterviewerId>("design_lead")
   const [aiState, setAiState] = useState<AiState>("connecting")
   const [isJoining, setIsJoining] = useState(false)
   const [isEnding, setIsEnding] = useState(false)
@@ -65,10 +67,12 @@ function App() {
     if (!resume && media.screenStatus !== "ready") return
     joinLock.current = true
     const current = ++operation.current
+    setSpeaker("design_lead")
     setIsJoining(true); setError(""); setAudioBlocked(false)
     const Transport = config?.provider === "deepseek" ? LocalTransport : RealtimeTransport
     const next = new Transport(event => {
       if (current !== operation.current) return
+      if (event.type === "speaker") setSpeaker(event.speaker)
       if (event.type === "state") setAiState(event.state)
       if (event.type === "audio-blocked") setAudioBlocked(event.blocked)
       if (event.type === "error") setError(event.message)
@@ -230,7 +234,7 @@ function App() {
       <AnimatePresence mode="wait" initial={false}>
         {view === "landing" && <LandingPage maxMinutes={Math.round((config?.maxDurationSeconds ?? 1800) / 60)} key="landing" onStart={openPreflight} />}
         {view === "preflight" && <PreflightPage key="preflight" microphoneStatus={media.microphoneStatus} screenStatus={media.screenStatus} microphoneError={media.microphoneError} screenError={media.screenError} joinError={error} isJoining={isJoining} screenStream={media.screenStream} onRequestMicrophone={media.requestMicrophone} onRequestScreen={media.requestScreen} onBack={goHome} onJoin={() => { void connect() }} config={config} onRefreshConfig={loadConfig} briefText={briefText} briefImages={briefImages} onBriefImages={setBriefImages} brief={brief} onBriefText={setBriefText} onPreparedBrief={setBrief} />}
-        {view === "call" && <CallPage key="call" duration={duration} aiState={aiState} microphoneEnabled={media.microphoneEnabled} screenStatus={media.screenStatus} screenStream={media.screenStream} onToggleMicrophone={media.microphoneStatus === "ready" ? media.toggleMicrophone : () => { void media.requestMicrophone() }} onRequestScreen={media.requestScreen} onStopScreen={media.stopScreen} onEnd={() => { void endCall(true) }} error={error || media.microphoneError || screenContext.error || media.screenError} audioBlocked={audioBlocked} onPlayAudio={() => { void transport.current?.playAudio() }} onReconnect={() => { void connect(true) }} isJoining={isJoining} isEnding={isEnding} screenSent={screenContext.sent} stage={session?.stage ?? "intro"} />}
+        {view === "call" && <CallPage speaker={speaker} key="call" duration={duration} aiState={aiState} microphoneEnabled={media.microphoneEnabled} screenStatus={media.screenStatus} screenStream={media.screenStream} onToggleMicrophone={media.microphoneStatus === "ready" ? media.toggleMicrophone : () => { void media.requestMicrophone() }} onRequestScreen={media.requestScreen} onStopScreen={media.stopScreen} onEnd={() => { void endCall(true) }} error={error || media.microphoneError || screenContext.error || media.screenError} audioBlocked={audioBlocked} onPlayAudio={() => { void transport.current?.playAudio() }} onReconnect={() => { void connect(true) }} isJoining={isJoining} isEnding={isEnding} screenSent={screenContext.sent} stage={session?.stage ?? "intro"} />}
         {view === "feedback" && session && <FeedbackPage key="feedback" session={session} error={error} onRetry={retryFeedback} onRepeat={openPreflight} onHome={goHome} onBack={goHistory} onDelete={async () => { try { await api.delete(session.id); goHome() } catch (cause) { setError(errorMessage(cause)) } }} />}
         {view === "history" && <HistoryPage key="history" onOpen={id => { void openSession(id) }} onHome={goHome} onStart={openPreflight} error={error} />}
       </AnimatePresence>

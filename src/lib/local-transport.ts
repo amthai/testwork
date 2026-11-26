@@ -2,8 +2,9 @@ import { voiceFrames } from "./voice-frames"
 import { z } from "zod"
 import { api } from "./api"
 import type { RealtimeEvent } from "./realtime"
+import { interviewerIdSchema, type InterviewerId } from "./interviewers"
 
-const updateSchema = z.object({ revision: z.number(), state: z.enum(["thinking", "listening", "speaking"]), audioId: z.string().uuid().nullable() })
+const updateSchema = z.object({ revision: z.number(), state: z.enum(["thinking", "listening", "speaking"]), audioId: z.string().uuid().nullable(), speaker: interviewerIdSchema.nullish() })
 type CaptureMessage = { type: "start" | "flushed" } | { type: "speech" | "probe" | "draft"; pcm: ArrayBuffer; draftCurrent?: boolean; serial?: number }
 
 export class LocalTransport {
@@ -17,6 +18,7 @@ export class LocalTransport {
   private audioComplete = false
   private streamAbort?: AbortController
   private playingId?: string
+  private speaker: InterviewerId = "design_lead"
   private capturing = false
   private playbackStarted = false
   private sessionId?: string
@@ -150,7 +152,8 @@ export class LocalTransport {
         const id = z.string().uuid().parse(res.headers.get("x-proof-audio"))
         revision = z.coerce.number().int().parse(res.headers.get("x-proof-revision"))
         this.capture?.port.postMessage("overlap")
-        this.begin(id)
+        const speaker = interviewerIdSchema.parse(res.headers.get("x-proof-speaker") ?? "design_lead")
+        this.begin(id, speaker)
         const controller = new AbortController()
         this.streamAbort = controller
         void this.consume(id, res, controller.signal).catch(() => {
@@ -166,15 +169,16 @@ export class LocalTransport {
         this.stopPlayback()
         this.notify({ type: "state", state: update.state })
       } else if (update.audioId !== this.playingId) {
-        this.begin(update.audioId)
+        this.begin(update.audioId, update.speaker ?? "design_lead")
         const id = update.audioId
         void this.legacyAudio(id).catch(() => { if (this.playingId === id) this.lost() })
       }
     }
   }
-  private begin(id: string) {
+  private begin(id: string, speaker: InterviewerId) {
     this.stopPlayback()
     this.playingId = id
+    this.speaker = speaker
     this.notify({ type: "state", state: "thinking" })
   }
   private async consume(id: string, response: Response, signal: AbortSignal) {
@@ -222,6 +226,7 @@ export class LocalTransport {
     }
     if (!this.playbackStarted) {
       this.playbackStarted = true
+      this.notify({ type: "speaker", speaker: this.speaker })
       this.notify({ type: "state", state: "speaking" })
       this.enqueue(() => this.post(`/${id}/playback`, JSON.stringify({ state: "started" }), "application/json"))
     }

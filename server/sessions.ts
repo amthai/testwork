@@ -1,4 +1,6 @@
+import { interviewerIdSchema } from "../src/lib/interviewers.js"
 import type { DefenseSession } from "../src/lib/session.js"
+import { minimumFeedbackWords, screenFrameContext, screenStoppedContext } from "../src/lib/roles/design-lead.js"
 import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import { hasCallCredentials, hasModelKey, type Config } from "./config.js"
@@ -10,7 +12,7 @@ import { briefInputSchema, type Brief, type BriefImage } from "../src/lib/method
 import { validateBriefImages } from "./brief-images.js"
 
 const eventSchema = z.object({
-  type: z.string(), item_id: z.string().optional(), transcript: z.string().optional(),
+  type: z.string(), speaker: interviewerIdSchema.optional(), item_id: z.string().optional(), transcript: z.string().optional(),
   item: z.object({ id: z.string(), role: z.string().optional() }).passthrough().optional(),
   error: z.object({ code: z.string().optional(), event_id: z.string().optional() }).optional(),
   response: z.object({ status: z.string().optional(), status_details: z.object({ error: z.object({ code: z.string().optional(), type: z.string().optional() }).nullable().optional() }).nullable().optional() }).optional(),
@@ -78,7 +80,7 @@ export class Sessions {
     this.store.update(id, { status: "connecting", endedAt: null, error: null })
     try {
       const history = JSON.stringify({ resumed: Boolean(resumeId), stage: session.stage, brief: session.brief, questions: session.questions, transcript: session.transcript.slice(-60) })
-      active.connection = await this.provider.connect(sdp, owner, history, e => this.event(id, e), () => { void this.interrupt(id, "Соединение с AI прервалось. Можно подключиться снова или получить разбор.") }, callId => this.store.addCall(callId, id))
+      active.connection = await this.provider.connect(sdp, owner, history, e => { if (this.active.get(id) === active) this.event(id, e) }, () => { if (this.active.get(id) === active) void this.interrupt(id, "Соединение с AI прервалось. Можно подключиться снова или получить разбор.") }, callId => this.store.addCall(callId, id))
       if (!active.connection.voice) this.store.addCall(active.connection.callId, id)
       if (active.finishing) { await this.endRemote(active.connection.callId); active.connection.close(); throw new AppError(409, "cancelled", "Подключение отменено.") }
       this.store.update(id, { status: "live" })
@@ -122,7 +124,7 @@ export class Sessions {
     const assistant = event.type === "response.output_audio_transcript.done"
     if (user && event.item_id) active.pending.delete(event.item_id)
     if ((user || assistant) && event.item_id && event.transcript?.trim()) {
-      this.store.transcript(id, { id: event.item_id, role: user ? "user" : "assistant", text: event.transcript.trim().slice(0, 12000), at: active.starts.get(event.item_id) ?? Date.now(), ...(active.truncated.has(event.item_id) ? { interrupted: true } : {}) })
+      this.store.transcript(id, { id: event.item_id, role: user ? "user" : "assistant", ...(assistant ? { speaker: event.speaker ?? "design_lead" } : {}), text: event.transcript.trim().slice(0, 12000), at: active.starts.get(event.item_id) ?? Date.now(), ...(active.truncated.has(event.item_id) ? { interrupted: true } : {}) })
       active.pending.delete(event.item_id)
     }
     if (!active.finishing) {
@@ -134,6 +136,11 @@ export class Sessions {
     const voice = active?.connection?.voice
     if (!voice || active?.finishing || voice.id !== voiceId) throw new AppError(409, "disconnected", "Голосовое соединение закрыто.")
     return voice
+  }
+  expertSpeech(id: string) {
+    const active = this.active.get(id)
+    if (!active?.connection?.expertSpeech || active.finishing) throw new AppError(409, "disconnected", "Голосовое соединение закрыто.")
+    return active.connection.expertSpeech
   }
   ready(id: string) {
     const active = this.active.get(id)
@@ -158,7 +165,7 @@ export class Sessions {
       const timeout = setTimeout(() => { active.frameAcks.delete(frameId); reject(new AppError(502, "frame_timeout", "AI пока не подтвердил получение экрана. Повторим передачу автоматически.")) }, 7000)
       const cleanup = () => { clearTimeout(timeout); active.frameAcks.delete(frameId) }
       active.frameAcks.set(frameId, { resolve: () => { cleanup(); resolve() }, reject: error => { cleanup(); reject(error) } })
-      try { active.connection!.send({ type: "conversation.item.create", event_id: frameId, item: { id: frameId, type: "message", role: "user", content: [{ type: "input_text", text: "Текущий кадр демонстрации экрана. Фоновый контекст, отвечать не нужно." }, { type: "input_image", image_url: image }] } }) }
+      try { active.connection!.send({ type: "conversation.item.create", event_id: frameId, item: { id: frameId, type: "message", role: "user", content: [{ type: "input_text", text: screenFrameContext }, { type: "input_image", image_url: image }] } }) }
       catch (error) { cleanup(); reject(error) }
     })
     active.imageItems.push(frameId)
@@ -168,13 +175,14 @@ export class Sessions {
     return { frameCount: this.store.get(id)!.frameCount }
   }
   screenStopped(id: string) {
-    this.active.get(id)?.connection?.send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: "Демонстрация экрана остановлена. Новые кадры пока недоступны. Продолжай разговор без утверждений о текущем экране." }] } })
+    this.active.get(id)?.connection?.send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: screenStoppedContext }] } })
   }
   async interrupt(id: string, message: string) {
     const active = this.active.get(id)
     if (!active || active.finishing) return
     active.finishing = true
     active.interview?.close()
+    active.connection?.expertSpeech?.cancel()
     for (const ack of active.frameAcks.values()) ack.reject(new AppError(409, "disconnected", "Передача экрана остановлена."))
     if (active.connection) { await this.endRemote(active.connection.callId); active.connection.close() }
     this.active.delete(id)
@@ -220,7 +228,7 @@ export class Sessions {
     const session = this.store.get(id)
     if (!session || session.status === "complete") return
     const words = session.transcript.filter(t => t.role === "user").map(t => t.text).join(" ").trim().split(/\s+/).filter(Boolean).length
-    if (words < 15) { this.store.update(id, { status: "insufficient", endedAt: session.endedAt ?? Date.now(), error: "Для содержательного разбора пока мало речи. В следующей защите расскажи о задаче и хотя бы одном своём решении." }); return }
+    if (words < minimumFeedbackWords) { this.store.update(id, { status: "insufficient", endedAt: session.endedAt ?? Date.now(), error: "Для содержательного разбора пока мало речи. В следующей защите расскажи о задаче и хотя бы одном своём решении." }); return }
     this.store.update(id, { status: "finishing", endedAt: session.endedAt ?? Date.now(), error: null })
     const task = this.report(this.store.get(id)!).then(feedback => {
       this.store.update(id, { status: "complete", feedback, error: null })

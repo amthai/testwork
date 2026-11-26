@@ -220,6 +220,7 @@
 }
 .voice-avatar { width: clamp(175px,18vw,246px); aspect-ratio: 1; position: relative; display: grid; place-items: center; }
 .avatar-crop { width: 73%; aspect-ratio: 1; overflow: hidden; border-radius: 50%; background: #ddd; }
+.avatar-initial { display: grid; place-items: center; height: 100%; color: #353535; background: #e3e0d9; font: 500 clamp(48px, 7vw, 88px)/1 var(--font-heading, sans-serif); }
 .avatar-crop img { object-position: 60% 40%; transform: scale(1.6); transform-origin: 54% 34%; }
 .avatar-waves { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #555; stroke-width: 1; pointer-events: none; }
 .avatar-waves path { transform-origin: 50% 50%; transform-box: view-box; }

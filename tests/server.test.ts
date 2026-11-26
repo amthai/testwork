@@ -1,5 +1,7 @@
 import { test, type TestContext } from "node:test"
 import assert from "node:assert/strict"
+import { setImmediate as nextTick } from "node:timers/promises"
+import { ExpertSpeech } from "../server/expert-speech.js"
 import { buildApp } from "../server/app.js"
 import { readConfig } from "../server/config.js"
 import { Store } from "../server/store.js"
@@ -20,6 +22,7 @@ const report: Feedback = { title: "Понятный контекст", summary: 
 class TestProvider implements Provider {
   analyses = 0
   failBrief = false
+  expertSpeech?: ExpertSpeech
   history = ""
   sent: object[] = []
   briefImages: BriefImage[] = []
@@ -44,7 +47,7 @@ class TestProvider implements Provider {
   async connect(_sdp: string, _owner: string, _history: string, onEvent: (event: unknown) => void): Promise<ControlConnection> {
     this.calls++; this.listener = onEvent; this.history = _history
     if (this.failConnect) throw new AppError(503, "quota", "Провайдер недоступен.")
-    return { callId: `rtc_test${this.calls}`, sdp, send: event => {
+    return { callId: `rtc_test${this.calls}`, sdp, expertSpeech: this.expertSpeech, send: event => {
       this.sent.push(event)
       const parsed = event as { type: string; event_id?: string; item?: { id: string } }
       if (parsed.type === "conversation.item.create" && parsed.item?.id) queueMicrotask(() => this.listener(this.rejectImages ? { type: "error", error: { code: "invalid_image", event_id: parsed.event_id } } : { type: "conversation.item.added", item: { id: parsed.item!.id, role: "user" } }))
@@ -401,4 +404,36 @@ test("interrupted AI speech is marked and remains visibly distinct from a fully 
   provider.listener({ type: "response.output_audio_transcript.done", item_id: "ai-1", transcript: "Почему ты выбрал такой сценарий?" })
   provider.listener({ type: "conversation.item.truncated", item_id: "ai-1" })
   assert.equal(store.get(id)?.transcript[0].interrupted, true)
+})
+
+
+test("expert audio and playback are scoped to the owner and to an approved clip", async t => {
+  const { app, provider, headers, create, store } = await setup(t)
+  let turnId: string | undefined
+  const speech = new ExpertSpeech(async () => Buffer.from("approved audio fixture"), e => {
+    if ("item" in e && e.item && typeof e.item === "object" && "id" in e.item && typeof e.item.id === "string") turnId = e.item.id
+  }, e => provider.listener(e))
+  provider.expertSpeech = speech
+  const id = (await create()).json().session.id as string
+  const text = "Какие данные нужны при повторной попытке?"
+  speech.speak("approved", "systems_analyst", text)
+  await nextTick()
+  assert.ok(turnId)
+  const url = `/api/sessions/${id}/expert-audio/${turnId}`
+  const other = await app.inject({ method: "GET", url: "/api/bootstrap" })
+  const otherHeaders = { ...headers, cookie: String(other.headers["set-cookie"]).split(";")[0] }
+  assert.equal((await app.inject({ method: "GET", url, headers: otherHeaders })).statusCode, 404)
+  assert.equal((await app.inject({ method: "POST", url: url + "/playback", headers: otherHeaders, payload: { state: "started" } })).statusCode, 404)
+  const clip = await app.inject({ method: "GET", url, headers })
+  assert.equal(clip.headers["content-type"], "audio/mpeg")
+  assert.equal(clip.headers["x-proof-speaker"], "systems_analyst")
+  assert.equal(clip.body, "approved audio fixture")
+  assert.deepEqual(store.get(id)?.transcript, [])
+  assert.equal((await app.inject({ method: "POST", url: url + "/playback", headers, payload: { state: "started", text: "Подмена" } })).statusCode, 400)
+  for (const state of ["started", "ended"]) {
+    assert.equal((await app.inject({ method: "POST", url: url + "/playback", headers, payload: { state } })).statusCode, 200)
+  }
+  assert.equal(store.get(id)?.transcript[0].text, text)
+  assert.equal(store.get(id)?.transcript[0].speaker, "systems_analyst")
+  assert.equal((await app.inject({ method: "GET", url, headers })).statusCode, 409)
 })

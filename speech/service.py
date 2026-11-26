@@ -5,22 +5,27 @@ import os
 import re
 import threading
 import wave
+from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import numpy as np
 import sherpa_onnx
 from piper import PiperVoice
-from models import DIRECTORY
+from models import DIRECTORY, VOICES
 
 recognizer = sherpa_onnx.OfflineRecognizer.from_nemo_ctc(
     model=str(DIRECTORY / "gigaam.onnx"), tokens=str(DIRECTORY / "tokens.txt"),
     feature_dim=64, num_threads=3,
 )
-voice = PiperVoice.load(DIRECTORY / "denis.onnx")
 inference = threading.Lock()
 # Only pronounce the assistant's words. Candidate transcripts stay verbatim.
 pronunciations = {"figma": "Фигма", "a/b": "а бэ", "ux": "ю икс", "ui": "ю ай", "proof": "Пруф"}
 terms = re.compile(r"\b(" + "|".join(map(re.escape, pronunciations)) + r")\b", re.IGNORECASE)
+
+
+@lru_cache(maxsize=1)
+def load_voice(name):
+    return PiperVoice.load(DIRECTORY / (name + ".onnx"))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -60,13 +65,16 @@ class Handler(BaseHTTPRequestHandler):
                     data = json.dumps({"text": stream.result.text}, ensure_ascii=False).encode()
                     mime = "application/json"
                 else:
+                    voice_name = self.headers.get("X-Piper-Voice", "denis")
+                    if voice_name not in VOICES:
+                        return self.respond(400)
                     text = body.decode().strip()
                     if not 0 < len(text) <= 2000:
                         return self.respond(400)
                     text = terms.sub(lambda m: pronunciations[m[0].lower()], text)
                     wav = io.BytesIO()
                     with wave.open(wav, "wb") as writer:
-                        voice.synthesize_wav(text, writer)
+                        load_voice(voice_name).synthesize_wav(text, writer)
                     data, mime = wav.getvalue(), "audio/wav"
             finally:
                 inference.release()

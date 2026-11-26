@@ -1,0 +1,19 @@
+Proof uses unmodified model and configuration files from the following publishers.
+The downloader pins the source revisions and verifies the SHA-256 of every file.
+
+Denis and Dmitri — Rhasspy / Open Home Foundation
+https://huggingface.co/rhasspy/piper-voices/tree/e9c8a39444359388adaa94255becb37a5a2b8e51/ru/ru_RU
+The Russian voice recordings for both models were dedicated to the public domain
+under CC0. The Denis model uses the Flemish rdh base (CC0).
+https://creativecommons.org/publicdomain/zero/1.0/
+The Dmitri model uses the hifi_tts_92 base (reader Cori Samuel). The Hi-Fi
+Multi-Speaker English TTS Dataset by Evelina Bakhturina, Vitaly Lavrukhin,
+Boris Ginsburg and Yang Zhang (2021) is licensed under CC BY 4.0.
+https://www.openslr.org/109/
+https://creativecommons.org/licenses/by/4.0/
+The training and provenance details are in the two upstream MODEL_CARD files.
+
+Mari and Terra — rraaww / ru_piper
+https://huggingface.co/rraaww/ru_piper/tree/ba4a8c784ff536f71e4dd48bd6815092fb02cd65
+The publisher licenses these models under Apache License 2.0. A copy of
+the license is included in Apache-2.0-LICENSE.

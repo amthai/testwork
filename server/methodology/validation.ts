@@ -1,4 +1,6 @@
 import { briefAnalysisSchema, type BriefAnalysis, type BriefImage, type TurnPlan } from "../../src/lib/methodology.js"
+import { teamPlanCorrections } from "../../src/lib/roles/team.js"
+import { briefLimits, interviewLimits, methodologyVersion, planCorrections, reportCopy, reportLimits } from "../../src/lib/roles/design-lead.js"
 import type { DefenseSession, Feedback } from "../../src/lib/session.js"
 import type { Frame } from "../store.js"
 import { transcriptFeedback } from "./report-sources.js"
@@ -11,7 +13,7 @@ export function validateBrief(text: string, raw: unknown, images: Pick<BriefImag
     throw new AppError(422, "brief_sources", "Не удалось разобрать все фото. Проверь, что задание хорошо видно, и повтори анализ.")
   }
   const ids = new Set<string>()
-  if (result.requirements.length > 12 || result.requirements.some(r => !/^req_[0-9]+$/.test(r.id) || ids.has(r.id) || !r.quote.trim() || !(r.sourceImageId === null ? text : sources.get(r.sourceImageId) ?? "").includes(r.quote) || !ids.add(r.id))) {
+  if (result.requirements.length > briefLimits.requirements || result.requirements.some(r => !/^req_[0-9]+$/.test(r.id) || ids.has(r.id) || !r.quote.trim() || !(r.sourceImageId === null ? text : sources.get(r.sourceImageId) ?? "").includes(r.quote) || !ids.add(r.id))) {
     throw new AppError(422, "brief_evidence", "Не удалось надёжно выделить требования. Проверь текст задания и повтори анализ.")
   }
   if (!result.requirements.length) throw new AppError(422, "brief_incomplete", "Не удалось найти ожидаемый результат задания. Добавь формулировку работодателя текстом или чёткое фото и повтори анализ.")
@@ -20,16 +22,32 @@ export function validateBrief(text: string, raw: unknown, images: Pick<BriefImag
 
 export function validatePlan(session: DefenseSession, plan: TurnPlan): string | null {
   const last = session.questions.at(-1)
+  const asks = plan.action === "next_topic" || plan.action === "follow_up" || plan.action === "clarify"
+  if (asks && (!plan.interviewerId || plan.question.length < 5 || !plan.topic.trim())) return teamPlanCorrections.missingAuthor
+  if (!asks && (plan.interviewerId !== null || plan.basisQuote !== null)) return teamPlanCorrections.noSpeaker
+  if (plan.action === "next_topic") {
+    const sources = [
+      session.brief?.text, ...(session.brief?.analysis.imageSources.map(image => image.text) ?? []),
+      ...session.transcript.filter(entry => entry.role === "user" && !entry.interrupted).map(entry => entry.text),
+    ]
+    const quote = plan.basisQuote
+    if (!quote || quote.length < 4 || !sources.some(text => text?.includes(quote))) {
+      return teamPlanCorrections.missingBasis
+    }
+  }
+  if ((plan.action === "follow_up" || plan.action === "clarify") && last && last.interviewerId !== plan.interviewerId) {
+    return teamPlanCorrections.sameAuthor
+  }
   const answers = session.transcript.filter(t => t.role === "user" && (!last || t.at >= last.at))
   const valid = new Set(answers.map(t => t.id))
-  if (plan.assessment.evidenceIds.some(id => !valid.has(id))) return "assessment.evidenceIds должны ссылаться только на доступные ответы пользователя после последнего вопроса."
-  if (plan.assessment.status !== "not_assessed" && (!last?.spokenEntryId || session.transcript.find(t => t.id === last.spokenEntryId)?.interrupted || !plan.assessment.evidenceIds.length)) return "Нельзя оценивать ответ без полностью заданного вопроса и реплики пользователя. Используй not_assessed."
-  if (plan.requirementId && !session.brief?.analysis.requirements.some(r => r.id === plan.requirementId)) return "Несуществующее требование. Выбери ID из брифа или null."
-  if (plan.action === "follow_up" && (!last || last.followUp >= 2 || !["vague", "partial"].includes(plan.assessment.status))) return "Уточнения исчерпаны или нет неполного ответа для уточнения. Выбери новую тему, clarify или wrap_up."
-  if (plan.action === "clarify" && (!last || plan.assessment.status !== "not_assessed")) return "Пояснение вопроса не является оценкой. Используй not_assessed и существующий вопрос."
-  if (plan.action === "resume_presentation" && plan.assessment.status !== "not_assessed") return "Возвращение к презентации не является оценкой ответа. Используй not_assessed."
-  if (plan.action === "next_topic" && session.questions.filter(q => q.followUp === 0).length >= 8) return "Основные темы исчерпаны. Выбери wrap_up."
-  if (["next_topic", "follow_up"].includes(plan.action) && session.questions.length >= 24) return "Лимит вопросов исчерпан. Выбери wrap_up."
+  if (plan.assessment.evidenceIds.some(id => !valid.has(id))) return planCorrections.answerSources
+  if (plan.assessment.status !== "not_assessed" && (!last?.spokenEntryId || session.transcript.find(t => t.id === last.spokenEntryId)?.interrupted || !plan.assessment.evidenceIds.length)) return planCorrections.unaskedQuestion
+  if (plan.requirementId && !session.brief?.analysis.requirements.some(r => r.id === plan.requirementId)) return planCorrections.unknownRequirement
+  if (plan.action === "follow_up" && (!last || last.followUp >= interviewLimits.followUps || !["vague", "partial"].includes(plan.assessment.status))) return planCorrections.followUp
+  if (plan.action === "clarify" && (!last || plan.assessment.status !== "not_assessed")) return planCorrections.clarify
+  if (plan.action === "resume_presentation" && plan.assessment.status !== "not_assessed") return planCorrections.resumePresentation
+  if (plan.action === "next_topic" && session.questions.filter(q => q.followUp === 0).length >= interviewLimits.topics) return planCorrections.topics
+  if (["next_topic", "follow_up"].includes(plan.action) && session.questions.length >= interviewLimits.questions) return planCorrections.questions
   return null
 }
 
@@ -45,10 +63,10 @@ export function validateFeedback(session: DefenseSession, frames: Frame[], feedb
       const valid = item.evidenceIds.length > 0 && item.evidenceIds.every(observed)
       if (!valid) removed++
       return valid
-    }).slice(0, 4)
+    }).slice(0, reportLimits.strengths)
   }
   if (feedback.details) {
-    feedback.details.methodologyVersion = "design-lead-v1"
+    feedback.details.methodologyVersion = methodologyVersion
     feedback.details.findings = feedback.details.findings.filter(f => {
       const citationsValid = f.evidence.every(e => frameIds.has(e.id) ? e.quote === "" : Boolean(e.quote.trim()) && (transcript.get(e.id) ?? requirements.get(e.id) ?? "").includes(e.quote))
       const hasObserved = f.evidence.some(e => observed(e.id))
@@ -63,18 +81,18 @@ export function validateFeedback(session: DefenseSession, frames: Frame[], feedb
         (["unverified", "omission"].includes(f.kind) ? ["insufficient", "recommendation"].includes(f.basis) : hasObserved)
       if (!valid) removed++
       return valid
-    }).slice(0, 6)
+    }).slice(0, reportLimits.findings)
     feedback.details.coverage = [...requirements.keys()].map(requirementId => {
       const item = feedback.details!.coverage.find(c => c.requirementId === requirementId)
       if (item && item.evidenceIds.every(observed) && (["not_discussed", "not_verifiable"].includes(item.status) || item.evidenceIds.length > 0)) return item
       if (item) removed++
-      return { requirementId, status: "not_verifiable" as const, detail: "Недостаточно проверяемых оснований для вывода.", evidenceIds: [] }
+      return { requirementId, status: "not_verifiable" as const, detail: reportCopy.noCoverage, evidenceIds: [] }
     })
     feedback.details.rewrites = feedback.details.rewrites.filter(r => {
       const valid = Boolean(r.before.trim()) && Boolean(users.get(r.sourceId)?.includes(r.before))
       if (!valid) removed++
       return valid
-    }).slice(0, 3)
+    }).slice(0, reportLimits.rewrites)
   }
   // A summary or action list may refer to a rejected finding. Fail closed instead of showing an inconsistent verdict.
   if (removed && mode === "strict") throw new AppError(422, "feedback_evidence", "AI вернул выводы без проверяемых оснований. Они не опубликованы. Повтори разбор; расшифровка сохранена.")
@@ -84,17 +102,17 @@ export function validateFeedback(session: DefenseSession, frames: Frame[], feedb
     return transcriptFeedback(session)
   }
   if (removed) {
-    feedback.title = "Разбор твоей защиты"
-    feedback.summary = feedback.strengths[0]?.detail ?? first?.observation ?? "Ниже — фрагменты защиты, которые удалось проверить по сохранённым материалам."
-    feedback.nextSteps = [...new Set(findings.filter(f => f.evidence.some(e => observed(e.id))).flatMap(f => f.prepareForDefense ?? f.fixInWork ?? []))].slice(0, 5)
-    feedback.limitations = ["В разбор вошли пункты, для которых удалось проверить ссылки на материалы защиты."]
+    feedback.title = reportCopy.checkedTitle
+    feedback.summary = feedback.strengths[0]?.detail ?? first?.observation ?? reportCopy.checkedSummary
+    feedback.nextSteps = [...new Set(findings.filter(f => f.evidence.some(e => observed(e.id))).flatMap(f => f.prepareForDefense ?? f.fixInWork ?? []))].slice(0, reportLimits.nextSteps)
+    feedback.limitations = [reportCopy.checkedLimit]
   }
   const limits = new Set(feedback.limitations)
-  limits.add("Это тренировочный разбор, не решение о найме. Эстетика UI и интонация не оценивались.")
-  if (!frames.length) limits.add("Нет сохранённых кадров: выводы о работе основаны только на твоём рассказе, устройство макетов не проверено.")
-  if (!session.brief) limits.add("Исходное задание не было загружено: соответствие требованиям работодателя не проверено.")
-  if (session.brief?.images.length) limits.add("Контекст фото задания основан на распознанном тексте и описании: возможны ошибки распознавания. Фото задания не являются доказательством выполненной работы.")
-  if (!session.questions.some(q => q.spokenEntryId)) limits.add("Этап вопросов не зафиксирован: нельзя оценить, как ты отвечаешь на уточнения.")
+  limits.add(reportCopy.scope)
+  if (!frames.length) limits.add(reportCopy.noFrames)
+  if (!session.brief) limits.add(reportCopy.noBrief)
+  if (session.brief?.images.length) limits.add(reportCopy.photoSource)
+  if (!session.questions.some(q => q.spokenEntryId)) limits.add(reportCopy.noQuestions)
   feedback.limitations = [...limits]
   return feedback
 }

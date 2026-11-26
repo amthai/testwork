@@ -6,6 +6,9 @@ import { readConfig } from "../server/config.js"
 import { LocalVoiceCall } from "../server/local-voice.js"
 import { DeepSeekProvider } from "../server/deepseek.js"
 import { Store } from "../server/store.js"
+import { imageReadingInstructions } from "../src/lib/roles/design-lead.js"
+import { interviewerProfiles, speakerStyle, teamBriefReplyInstructions, teamDialogueInstructions, teamFeedbackInstructions, teamMentorInstructions } from "../src/lib/roles/team.js"
+import type { InterviewerId } from "../src/lib/interviewers.js"
 import { brief, briefText, exampleSession, plan, report } from "./fixtures.js"
 
 const config = readConfig({ PROOF_PROVIDER: "deepseek", DEEPSEEK_API_KEY: "fixture-only" })
@@ -31,8 +34,9 @@ test("DeepSeek mode accepts photos and uses a grounded structured report without
     if (body.text.format.name === "defense_feedback") {
       const { observedEvidenceIds } = JSON.parse(body.input[0].content[0].text)
       assert.deepEqual(observedEvidenceIds, ["u1", "u2", "f1"])
+      assert.equal(body.instructions, teamFeedbackInstructions)
       assert.match(body.instructions, /observedEvidenceIds/)
-    }
+    } else assert.equal(body.instructions, imageReadingInstructions)
     return modelReply(++calls === 1 ? { images: analysis.imageSources } : structuredClone(report))
   })
   const provider = new DeepSeekProvider(config)
@@ -54,11 +58,13 @@ test("local voice routes isolate calls, transcribe audio, deliver and interrupt 
       if (!body.text) return modelReply("Привет! Я Денис. Как тебя зовут?", true)
       if (body.text.format.name === "assignment_requirements") return modelReply(brief.analysis)
       if (body.text.format.name === "dialogue") {
+        assert.ok(body.instructions.includes(teamDialogueInstructions()))
         const { assessment: _unused, ...opening } = { ...plan, requirementId: null }
         if (dialogue.action === "questions") planned++
         return modelReply({ ...dialogue, participantName: null, plan: dialogue.action === "questions" ? opening : null })
       }
       if (body.text.format.name === "turn_plan") {
+        assert.ok(body.instructions.includes(teamMentorInstructions))
         fallbackPlans++
         return modelReply({ ...plan, requirementId: null, question: "Почему ты выбрал именно такой сценарий?" })
       }
@@ -236,6 +242,74 @@ test("a transient connection failure before the first model byte retries the con
   call.voice.turn("retry-test", { ...exampleSession, remainingSeconds: 300 }, "", undefined, true)
   assert.equal(await done.promise, "completed")
   assert.equal(attempts, 2)
+})
+
+test("a direct assignment question uses the current interviewer's brief reply in streaming mode", async t => {
+  const reply = "На задание есть четыре часа."
+  let instructions = ""
+  t.mock.method(globalThis, "fetch", async (url: URL | string, options: RequestInit) => {
+    if (String(url).endsWith("/ready")) return new Response()
+    const request = JSON.parse(String(options.body))
+    instructions = request.instructions
+    assert.equal(request.stream, true)
+    const response = await modelReply(reply, true).json()
+    const events = [
+      { type: "response.created", response: { ...response, status: "in_progress", output: [] } },
+      { type: "response.completed", response },
+    ]
+    return new Response(events.map(event => `data: ${JSON.stringify(event)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } })
+  })
+  const done = Promise.withResolvers<unknown>()
+  const call = await new DeepSeekProvider(config).connect("", "", "", event => {
+    if (event && typeof event === "object" && "type" in event && event.type === "response.done") done.resolve(event)
+  })
+  t.after(() => call.close())
+  call.voice.format = "wav"
+  const question = { id: "u1", at: 1, role: "user" as const, text: "Сколько времени отводится на задание?" }
+  call.voice.turn("brief-reply", { ...exampleSession, interviewerId: "cpo", stage: "questions", transcript: [question], remainingSeconds: 300 }, "", undefined, true, false, "cpo")
+  const event = await done.promise
+  assert.equal(instructions, teamBriefReplyInstructions("cpo"))
+  assert.ok(instructions.includes(speakerStyle("cpo")))
+  assert.partialDeepStrictEqual(event, { response: { status: "completed", output: [
+    { name: "dialogue", arguments: JSON.stringify({ action: "reply", reply, plan: null }) },
+  ] } })
+})
+
+test("Piper switches voice per speaker, retains it for a clarification and rejects stale playback", async t => {
+  const voices: string[] = []
+  const events: object[] = []
+  t.mock.method(globalThis, "fetch", async (_url: URL, request: RequestInit) => {
+    voices.push(new Headers(request.headers).get("X-Piper-Voice")!)
+    return new Response(Buffer.from("RIFF" + "0".repeat(100)))
+  })
+  const call = new LocalVoiceCall(config.SPEECH_URL, event => events.push(event), async () => plan, async () => ({ action: "listen", reply: "" }))
+  t.after(() => call.close())
+  const speak = async (speaker: InterviewerId, text: string) => {
+    const before = await call.poll(-1)
+    call.turn(randomUUID(), { ...exampleSession, remainingSeconds: 300 }, "", text, false, false, speaker)
+    let state = await call.poll(before.revision)
+    if (!state.audioId) state = await call.poll(state.revision)
+    assert.ok(state.audioId)
+    assert.equal(state.speaker, speaker)
+    assert.equal(voices.at(-1), interviewerProfiles[speaker].piperVoice)
+    call.playback(state.audioId, "started")
+    assert.partialDeepStrictEqual(events.at(-1), { type: "response.output_audio_transcript.done", speaker, transcript: text })
+    return state.audioId
+  }
+  const lead = await speak("design_lead", "Передаю слово Марине.")
+  call.playback(lead, "ended")
+  const pm = await speak("product_manager", "Почему ты выбрал эту группу?")
+  call.playback(pm, "interrupted")
+  const clarification = await speak("product_manager", "Что помогло выбрать эту группу?")
+  call.playback(pm, "ended")
+  assert.equal((await call.poll(-1)).audioId, clarification)
+  call.playback(clarification, "ended")
+  const cpo = await speak("cpo", "Как изменится стоимость доставки?")
+  call.playback(cpo, "ended")
+  const analyst = await speak("systems_analyst", "Что произойдёт при повторном списании?")
+  call.playback(analyst, "ended")
+  assert.equal((await call.poll(-1)).speaker, null)
+  assert.equal(new Set(voices).size, 4)
 })
 
 for (const ending of ["requested", "voice"] as const) {

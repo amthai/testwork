@@ -1,10 +1,11 @@
 import { z } from "zod"
+import { interviewerIdSchema } from "./interviewers.js"
 import { briefSchema, questionSchema, reportDetailsSchema, stageSchema } from "./methodology.js"
 import { publicServiceMessage } from "./service-errors.js"
 
 export const transcriptSchema = z.object({
   id: z.string(), role: z.enum(["user", "assistant"]), text: z.string(), at: z.number(),
-  interrupted: z.boolean().optional(),
+  interrupted: z.boolean().optional(), speaker: interviewerIdSchema.optional(),
 })
 export type TranscriptEntry = z.infer<typeof transcriptSchema>
 const observationSchema = z.object({

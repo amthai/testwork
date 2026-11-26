@@ -7,8 +7,8 @@ import { generatedFeedbackSchema, sessionSchema } from "../src/lib/session.js"
 import { reportMarkdown } from "../src/lib/report-export.js"
 import { validateBrief, validateFeedback, validatePlan } from "../server/methodology/validation.js"
 import { Interview, presentationFinished } from "../server/methodology/interview.js"
-import { acknowledgedQuestion, explicitAnswerEnd, requestsTime, presentationThanks, spokenNextQuestion } from "../server/methodology/dialogue.js"
-import { greetingInstructions, openingGreeting } from "../server/methodology/rules.js"
+import { explicitAnswerEnd, requestsTime, presentationThanks, spokenNextQuestion } from "../server/methodology/dialogue.js"
+import { acknowledgedQuestion, evaluationRules, greetingInstructions, openingGreeting, questionCriteria, socialStyle } from "../src/lib/roles/design-lead.js"
 import { reportSources, transcriptFeedback } from "../server/methodology/report-sources.js"
 import { Store } from "../server/store.js"
 import { brief, briefText, exampleSession, plan, report } from "./fixtures.js"
@@ -118,8 +118,9 @@ function harness(t: TestContext) {
   const session = store.create("synthetic-owner")
   store.update(session.id, { status: "live", brief })
   const sent: object[] = []
+  const expertAudio: Array<{ token: string; speaker: string; spoken: string }> = []
   let finished = 0; let failed = 0; let serial = 0
-  const interview = new Interview(session.id, store, { callId: "rtc_test", sdp: "", send: event => sent.push(event), close() {} }, () => { finished++; interview.close() }, () => { failed++; interview.close() })
+  const interview = new Interview(session.id, store, { callId: "rtc_test", sdp: "", send: event => sent.push(event), speakExpert: (token, speaker, spoken) => { expertAudio.push({ token, speaker, spoken }) }, close() {} }, () => { finished++; interview.close() }, () => { failed++; interview.close() })
   t.after(() => { interview.close(); store.close() })
   const requests = () => sent.flatMap(e => { const p = requestSchema.safeParse(e); return p.success ? [p.data] : [] })
   const begin = () => {
@@ -147,7 +148,7 @@ function harness(t: TestContext) {
     interview.event({ type: "conversation.item.input_audio_transcription.completed", item_id: id })
     return id
   }
-  return { store, id: session.id, interview, sent, requests, complete, user, finished: () => finished, failed: () => failed }
+  return { store, id: session.id, interview, sent, requests, complete, user, expertAudio, finished: () => finished, failed: () => failed }
 }
 test("intro hands off to silent presentation; ordinary completed turns do not generate replies", t => {
   const h = harness(t)
@@ -155,7 +156,10 @@ test("intro hands off to silent presentation; ordinary completed turns do not ge
   assert.ok(String(h.requests()[0].response.instructions).endsWith(greetingInstructions))
   h.complete()
   assert.equal(h.store.get(h.id)?.stage, "meeting")
-  h.user("Меня зовут Анна."); h.complete({ action: "introduce", participantName: "Анна", reply: "Анна, покажи работу." }); h.complete()
+  h.user("Меня зовут Анна.")
+  const dialogue = String(h.requests().at(-1)?.response.instructions)
+  for (const section of [socialStyle, questionCriteria, evaluationRules]) assert.ok(dialogue.includes(section))
+  h.complete({ action: "introduce", participantName: "Анна", reply: "Анна, покажи работу." }); h.complete()
   assert.equal(h.store.get(h.id)?.participantName, "Анна")
   assert.equal(h.store.get(h.id)?.stage, "presentation")
   h.user("Я начал с изучения задачи. Теперь покажу основной сценарий.")
@@ -166,6 +170,7 @@ test("intro hands off to silent presentation; ordinary completed turns do not ge
   t.mock.timers.tick(601)
   assert.equal(h.store.get(h.id)?.stage, "questions")
   assert.deepEqual(h.requests().at(-1)?.response.output_modalities, ["text"])
+  assert.ok(String(h.requests().at(-1)?.response.instructions).includes(questionCriteria))
 })
 test("rejoining a presentation returns the floor without replaying the welcome", t => {
   const h = harness(t)
@@ -363,4 +368,91 @@ test("a late decision cannot close the call over new speech; a malformed turn ca
   h.complete({ action: "reply", reply: "Покажи, как пользователь найдёт аптеку." })
   assert.equal(h.requests().at(-1)?.response.metadata.mode, "speak")
   assert.equal(h.store.get(h.id)?.questions.length, 0)
+})
+
+test("the team can close questions immediately, without assigning a single role", t => {
+  const h = harness(t)
+  h.store.update(h.id, { stage: "presentation" })
+  h.user("Я закончил презентацию."); t.mock.timers.tick(601)
+  h.complete({ ...plan, action: "wrap_up", interviewerId: null, basisQuote: null, topic: "", question: "" })
+  assert.equal(h.store.get(h.id)?.stage, "wrap_up")
+  assert.equal(h.store.get(h.id)?.questions.length, 0)
+  assert.equal(h.expertAudio.length, 0)
+})
+
+test("new topics use a quote from the assignment, OCR or participant, never another interviewer", () => {
+  const session = structuredClone(exampleSession)
+  const businessQuote = "Сокращаем число возвратов, даже если обработка заказа станет дороже."
+  const systemQuote = "Платёж прошёл, но подтверждение не пришло."
+  session.transcript.push({ id: "u3", role: "user", text: businessQuote, at: 61_000 })
+  session.brief!.analysis.imageSources.push({ id: "photo", text: systemQuote, description: "" })
+  assert.equal(validatePlan(session, { ...plan, interviewerId: "cpo", basisQuote: businessQuote }), null)
+  assert.equal(validatePlan(session, { ...plan, interviewerId: "systems_analyst", basisQuote: systemQuote }), null)
+  for (const quote of ["Бизнес хочет увеличить прибыль", session.transcript[1].text, null]) {
+    assert.ok(validatePlan(session, { ...plan, interviewerId: "cpo", basisQuote: quote }))
+  }
+  const correction = { ...plan, action: "clarify" as const, interviewerId: "systems_analyst" as const, basisQuote: null }
+  assert.ok(validatePlan(session, correction))
+  session.questions[0].interviewerId = "systems_analyst"
+  assert.equal(validatePlan(session, correction), null)
+})
+
+test("Denis hands off before an expert speaks; acknowledging the handoff never marks the question as asked", t => {
+  const h = harness(t)
+  h.store.update(h.id, { stage: "presentation" })
+  h.interview.advance("questions"); t.mock.timers.tick(601)
+  const expertQuestion = "Какая гипотеза сильнее всего повлияла на выбранный приоритет?"
+  h.complete({ ...plan, question: expertQuestion, interviewerId: "product_manager" })
+  assert.match(String(h.requests().at(-1)?.response.instructions), /Марина/u)
+  const handoff = h.complete(undefined, "Передаю слово Марине.")
+  assert.equal(h.store.get(h.id)?.questions[0].spokenEntryId, null)
+  assert.equal(h.expertAudio.length, 0)
+  h.interview.event({ type: "output_audio_buffer.stopped", response_id: handoff.response.id })
+  assert.equal(h.expertAudio.length, 1)
+  const turn = h.expertAudio[0]
+  assert.equal(turn.speaker, "product_manager")
+  assert.equal(turn.spoken, expertQuestion)
+  const response = { id: "expert_1", metadata: { proof_turn: turn.token, speaker: turn.speaker } }
+  h.interview.event({ type: "response.created", response })
+  h.interview.event({ type: "response.output_audio_transcript.done", response_id: response.id, item_id: "a_m" })
+  h.interview.event({ type: "response.done", response: { ...response, status: "completed", output: [] } })
+  assert.equal(h.store.get(h.id)?.questions[0].spokenEntryId, "a_m")
+  assert.equal(h.store.get(h.id)?.questions[0].interviewerId, "product_manager")
+  h.user("Можешь повторить вопрос?")
+  h.complete({ action: "reply", reply: expertQuestion })
+  assert.deepEqual(h.expertAudio.map(q => q.speaker), ["product_manager", "product_manager"])
+})
+
+test("an interruption during the handoff leaves the specialist silent", t => {
+  const h = harness(t)
+  h.store.update(h.id, { stage: "presentation" })
+  h.interview.advance("questions"); t.mock.timers.tick(601)
+  h.complete({ ...plan, interviewerId: "product_manager" })
+  const handoff = h.complete()
+  h.user("Подожди, я хочу ещё кое-что показать.")
+  h.interview.event({ type: "output_audio_buffer.stopped", response_id: handoff.response.id })
+  assert.equal(h.expertAudio.length, 0)
+  assert.equal(h.store.get(h.id)?.questions.length, 0)
+})
+
+test("unfounded expert questions are skipped after the planner's correction attempt", t => {
+  const h = harness(t)
+  h.store.update(h.id, { stage: "presentation" })
+  h.interview.advance("questions"); t.mock.timers.tick(601)
+  const ungrounded = { ...plan, interviewerId: "cpo", basisQuote: "Монетизация и маржа" }
+  h.complete(ungrounded); t.mock.timers.tick(601); h.complete(ungrounded)
+  assert.equal(h.store.get(h.id)?.stage, "wrap_up")
+  assert.deepEqual(h.store.get(h.id)?.questions, [])
+  assert.deepEqual(h.expertAudio, [])
+})
+
+test("reconnection replays the outstanding specialist's question in the same voice; legacy questions belong to Denis", t => {
+  const h = harness(t)
+  const legacy = exampleSession.questions[0]
+  assert.equal(legacy.interviewerId, "design_lead")
+  h.store.update(h.id, { stage: "questions", questions: [{ ...legacy, interviewerId: "systems_analyst", spokenEntryId: null }] })
+  h.interview.ready()
+  assert.equal(h.expertAudio[0].speaker, "systems_analyst")
+  assert.equal(h.expertAudio[0].spoken, legacy.question)
+  assert.equal(h.store.get(h.id)?.questions.length, 1)
 })

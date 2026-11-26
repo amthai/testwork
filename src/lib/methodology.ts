@@ -1,9 +1,9 @@
 import { z } from "zod"
+import { interviewerIdSchema } from "./interviewers.js"
 
-export const METHODOLOGY_VERSION = "design-lead-v1"
-export const areaSchema = z.enum(["approach", "ux", "argumentation", "presentation", "deliverables"])
+export const areaSchema = z.enum(["approach", "ux", "argumentation", "presentation", "deliverables", "business", "systems"])
 export type Area = z.infer<typeof areaSchema>
-export const areaLabels: Record<Area, string> = { approach: "Подход и процесс", ux: "UX и сценарии", argumentation: "Аргументация", presentation: "Презентация", deliverables: "Результат по заданию" }
+export const areaLabels: Record<Area, string> = { approach: "Подход и процесс", ux: "UX и сценарии", argumentation: "Аргументация", presentation: "Презентация", deliverables: "Результат по заданию", business: "Влияние на бизнес", systems: "Правила и исключения" }
 export const briefTextSchema = z.string().trim().min(40).max(16000)
 export const MAX_BRIEF_IMAGES = 3
 export const MAX_BRIEF_IMAGE_URL = 1_200_000
@@ -36,22 +36,25 @@ export type Brief = z.infer<typeof briefSchema>
 export type BriefAnalysis = z.infer<typeof briefAnalysisSchema>
 export const stageSchema = z.enum(["intro", "meeting", "presentation", "questions", "wrap_up", "closing"])
 export type InterviewStage = z.infer<typeof stageSchema>
-export const stageLabels: Record<InterviewStage, string> = { intro: "Знакомство", meeting: "Знакомство", presentation: "Твоя презентация", questions: "Вопросы дизайн-лида", wrap_up: "Последние дополнения", closing: "Завершаем разговор" }
+export const stageLabels: Record<InterviewStage, string> = { intro: "Знакомство", meeting: "Знакомство", presentation: "Твоя презентация", questions: "Вопросы команды", wrap_up: "Последние дополнения", closing: "Завершаем разговор" }
 export const assessmentSchema = z.object({
   status: z.enum(["not_assessed", "substantive", "partial", "vague", "unknown"]),
   summary: z.string().max(1000), evidenceIds: z.array(z.string()).max(12),
 })
 export const turnPlanSchema = z.object({
   action: z.enum(["next_topic", "follow_up", "clarify", "resume_presentation", "wrap_up"]),
-  topic: z.string().min(1).max(160), area: areaSchema,
-  requirementId: z.string().nullable(), question: z.string().min(5).max(700),
+  topic: z.string().max(160), area: areaSchema,
+  interviewerId: interviewerIdSchema.nullable(), basisQuote: z.string().trim().max(600).nullable(),
+  requirementId: z.string().nullable(), question: z.string().trim().max(700),
   assessment: assessmentSchema,
 })
 export type TurnPlan = z.infer<typeof turnPlanSchema>
 export const questionSchema = z.object({
   id: z.string(), rootId: z.string(), at: z.number(), question: z.string(),
+  interviewerId: interviewerIdSchema.default("design_lead"), basisQuote: z.string().nullable().default(null),
   area: areaSchema, topic: z.string(), requirementId: z.string().nullable(),
-  followUp: z.number().int().min(0).max(2), spokenEntryId: z.string().nullable(),
+  // A saved question is read even if a later interview uses a smaller limit.
+  followUp: z.number().int().nonnegative(), spokenEntryId: z.string().nullable(),
   assessment: assessmentSchema,
 })
 export type InterviewQuestion = z.infer<typeof questionSchema>

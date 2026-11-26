@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { readConfig, hasCallCredentials } from "../server/config.js"
 import { nextYandexPhrase, yandexSpeech } from "../server/yandex-speech.js"
+import { interviewerProfiles } from "../src/lib/roles/team.js"
 
 test("LiveTTS uses one request for a ready question and starts delivering PCM before its end", async t => {
   const text = "Понял. А что произойдёт, если сумма выйдет за лимит?"
@@ -42,6 +43,25 @@ test("a legacy client receives a single playable WAV for multiple SpeechKit reco
   assert.equal(wav.readUInt32LE(24), 24000)
   assert.equal(wav.readUInt32LE(40), 4)
   assert.equal((await audio.next()).done, true)
+})
+
+test("all four team voices select a distinct supported LiveTTS voice and role", async t => {
+  const hints: unknown[] = []
+  t.mock.method(globalThis, "fetch", async (_url: URL, init: RequestInit) => {
+    const request = JSON.parse(String(init.body))
+    assert.equal(request.model, "livetts")
+    hints.push(request.hints)
+    return new Response('{"result":{"audioChunk":{"data":"AQI="}}}')
+  })
+  for (const id of ["design_lead", "product_manager", "cpo", "systems_analyst"] as const) {
+    const audio = yandexSpeech("Поясни, пожалуйста.", "fixture", new AbortController().signal, true, interviewerProfiles[id].yandexVoice)
+    assert.equal((await audio.next()).done, false)
+    assert.equal((await audio.next()).done, true)
+  }
+  assert.deepEqual(hints, [
+    [{ voice: "denis" }, { role: "casual" }], [{ voice: "sofia" }, { role: "casual" }],
+    [{ voice: "irina" }, { role: "neutral" }], [{ voice: "sergey" }, { role: "support" }],
+  ])
 })
 
 test("missing Yandex credentials prevent new calls", () => {

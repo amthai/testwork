@@ -10,7 +10,7 @@ export const brief: Brief = briefSchema.parse({
     { id: "req_2", text: "Объяснить решения", quote: "объясните решения", area: "argumentation" },
   ], ambiguities: ["Данные о проблемах пользователей не предоставлены."] },
 })
-export const plan: TurnPlan = { action: "next_topic", topic: "Выбор аптеки", area: "ux", requirementId: "req_1", question: "Что произойдёт, если выбранного лекарства не окажется в аптеке?", assessment: { status: "not_assessed", summary: "", evidenceIds: [] } }
+export const plan: TurnPlan = { action: "next_topic", interviewerId: "design_lead", basisQuote: "Покажите основной сценарий", topic: "Выбор аптеки", area: "ux", requirementId: "req_1", question: "Что произойдёт, если выбранного лекарства не окажется в аптеке?", assessment: { status: "not_assessed", summary: "", evidenceIds: [] } }
 export const report: Feedback = {
   title: "Сценарий понятен, но доступность лекарства не раскрыта", summary: "Ты объяснил основной путь покупки и ограничения по времени. В ответе о недоступном лекарстве пока не хватило конкретного действия пользователя.",
   strengths: [{ title: "Честные ограничения исследования", detail: "Ты отделил гипотезу от проверенного факта и соотнёс работу с четырьмя часами.", evidenceIds: ["u1"] }], improvements: [],
