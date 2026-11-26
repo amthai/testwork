@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence } from "motion/react"
 import { LandingPage } from "@/pages/landing-page"
+import { ScreenLoader } from "@/components/screen-loader"
 import { useMediaSession } from "@/hooks/use-media-session"
 import { useScreenContext } from "@/hooks/use-screen-context"
 import { LocalTransport } from "@/lib/local-transport"
@@ -214,7 +215,7 @@ function App() {
   return (
     <>
       <a href="#main-content" className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-zinc-950 px-4 py-2 text-sm text-white focus:translate-y-0">Перейти к содержанию</a>
-      <Suspense fallback={<main id="main-content" role="status" className="archive-main">Открываем экран…</main>}>
+      <Suspense fallback={<main id="main-content"><ScreenLoader /></main>}>
       <AnimatePresence mode="wait" initial={false}>
         {view === "landing" && <LandingPage maxMinutes={Math.round((config?.maxDurationSeconds ?? 1200) / 60)} key="landing" onStart={openPreflight} />}
         {view === "preflight" && <PreflightPage key="preflight" microphoneStatus={media.microphoneStatus} screenStatus={media.screenStatus} microphoneError={media.microphoneError} screenError={media.screenError} joinError={error} isJoining={isJoining} screenStream={media.screenStream} onRequestMicrophone={media.requestMicrophone} onRequestScreen={media.requestScreen} onBack={goHome} onJoin={() => { void connect() }} config={config} onRefreshConfig={loadConfig} briefText={briefText} briefImages={briefImages} onBriefImages={setBriefImages} brief={brief} onBriefText={setBriefText} onPreparedBrief={setBrief} />}

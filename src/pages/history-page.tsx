@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { ArrowRight, FileClock, Loader2, Plus } from "lucide-react"
+import { ArrowRight, FileClock, Plus } from "lucide-react"
 import { motion } from "motion/react"
 import { WorkspaceHeader } from "@/components/workspace-header"
+import { ScreenLoader } from "@/components/screen-loader"
 import { Card, CardGroup } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { api, errorMessage } from "@/lib/api"
@@ -27,7 +28,7 @@ export function HistoryPage({ onOpen, onHome, onStart, error }: { onOpen: (id: s
       </div>
       {(loadError || error) && <div role="alert" className="status-panel"><p>{loadError || error}</p>
         <Button variant="tertiary" onClick={() => setAttempt(value => value + 1)}>Попробовать снова</Button></div>}
-      {loading ? <p role="status" className="status-panel"><Loader2 className="size-4 animate-spin" /> Загружаем защиты…</p>
+      {loading ? <ScreenLoader label="Загрузка списка защит" />
         : sessions.length === 0 && !loadError ? <div className="archive-empty">
           <span className="empty-icon"><FileClock size={28} strokeWidth={1.5} /></span>
           <h2>Здесь появится первая защита</h2><p>После звонка ты сможешь вернуться к ответам и рекомендациям.</p>
