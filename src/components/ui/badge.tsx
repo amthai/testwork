@@ -51,8 +51,8 @@ const badgeVariants = cva(
       // default, 20px compact. The height is fixed rather than padded so the
       // trimmed label below can't shrink the badge.
       size: {
-        default: "h-6 px-2.5 text-[length:var(--fs-caption,12px)] leading-[var(--lh-caption,16px)] gap-1.5",
-        compact: "h-5 px-2 text-[length:var(--fs-caption-compact,11px)] leading-[var(--lh-caption-compact,14px)] gap-1",
+        default: "h-6 px-2.5 text-[length:var(--fs-caption,14px)] leading-[var(--lh-caption,18px)] gap-1.5",
+        compact: "h-5 px-2 text-[length:var(--fs-caption-compact,14px)] leading-[var(--lh-caption-compact,18px)] gap-1",
       },
     },
     // Ghost has nothing to pad away from, so its dot sits on the edge.

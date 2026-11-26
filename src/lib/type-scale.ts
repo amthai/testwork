@@ -26,28 +26,27 @@ const typeStyles = {
   /** Section headings, dialog titles. */
   title: {
     default: { size: 16, leading: 22 },
-    compact: { size: 15, leading: 20 },
+    compact: { size: 16, leading: 22 },
   },
   /** Card titles, chat bubbles, emphasized rows. */
   subtitle: {
-    default: { size: 14, leading: 20 },
-    compact: { size: 13, leading: 18 },
+    default: { size: 16, leading: 20 },
+    compact: { size: 16, leading: 20 },
   },
-  /** Control labels, body copy, and paragraphs. 20px also puts a row of
-   *  padded text on the 36px ladder (8 + 20 + 8), 18px on the 28px one. */
+  /** Body copy, paragraphs, and editable fields. */
   body: {
-    default: { size: 13, leading: 20 },
-    compact: { size: 12, leading: 18 },
+    default: { size: 16, leading: 20 },
+    compact: { size: 16, leading: 20 },
   },
   /** Secondary text: descriptions, meta rows, errors, group labels. */
   caption: {
-    default: { size: 12, leading: 16 },
-    compact: { size: 11, leading: 14 },
+    default: { size: 14, leading: 18 },
+    compact: { size: 14, leading: 18 },
   },
   /** Keyboard caps, counters, tiny badges. Single line only. */
   micro: {
-    default: { size: 11, leading: 14 },
-    compact: { size: 10, leading: 12 },
+    default: { size: 14, leading: 18 },
+    compact: { size: 14, leading: 18 },
   },
 } as const satisfies Record<string, Record<TypeScaleVariant, TypeScalePair>>;
 
@@ -76,18 +75,18 @@ const typeClasses = {
   default: {
     display: "text-[length:var(--fs-display,28px)] leading-[var(--lh-display,34px)]",
     title: "text-[length:var(--fs-title,16px)] leading-[var(--lh-title,22px)]",
-    subtitle: "text-[length:var(--fs-subtitle,14px)] leading-[var(--lh-subtitle,20px)]",
-    body: "text-[length:var(--fs-body,13px)] leading-[var(--lh-body,20px)]",
-    caption: "text-[length:var(--fs-caption,12px)] leading-[var(--lh-caption,16px)]",
-    micro: "text-[length:var(--fs-micro,11px)] leading-[var(--lh-micro,14px)]",
+    subtitle: "text-[length:var(--fs-subtitle,16px)] leading-[var(--lh-subtitle,20px)]",
+    body: "text-[length:var(--fs-body,16px)] leading-[var(--lh-body,20px)]",
+    caption: "text-[length:var(--fs-caption,14px)] leading-[var(--lh-caption,18px)]",
+    micro: "text-[length:var(--fs-micro,14px)] leading-[var(--lh-micro,18px)]",
   },
   compact: {
     display: "text-[length:var(--fs-display-compact,24px)] leading-[var(--lh-display-compact,30px)]",
-    title: "text-[length:var(--fs-title-compact,15px)] leading-[var(--lh-title-compact,20px)]",
-    subtitle: "text-[length:var(--fs-subtitle-compact,13px)] leading-[var(--lh-subtitle-compact,18px)]",
-    body: "text-[length:var(--fs-body-compact,12px)] leading-[var(--lh-body-compact,18px)]",
-    caption: "text-[length:var(--fs-caption-compact,11px)] leading-[var(--lh-caption-compact,14px)]",
-    micro: "text-[length:var(--fs-micro-compact,10px)] leading-[var(--lh-micro-compact,12px)]",
+    title: "text-[length:var(--fs-title-compact,16px)] leading-[var(--lh-title-compact,22px)]",
+    subtitle: "text-[length:var(--fs-subtitle-compact,16px)] leading-[var(--lh-subtitle-compact,20px)]",
+    body: "text-[length:var(--fs-body-compact,16px)] leading-[var(--lh-body-compact,20px)]",
+    caption: "text-[length:var(--fs-caption-compact,14px)] leading-[var(--lh-caption-compact,18px)]",
+    micro: "text-[length:var(--fs-micro-compact,14px)] leading-[var(--lh-micro-compact,18px)]",
   },
 } as const satisfies Record<TypeScaleVariant, Record<TypeScaleRole, string>>;
 
@@ -98,11 +97,5 @@ function typeClass(role: TypeScaleRole, variant: TypeScaleVariant = "default"): 
   return typeClasses[variant][role];
 }
 
-/** Editable fields add this after their role. iOS Safari zooms the page into
- *  a focused field set under 16px, so touch screens get 16px. It sets the
- *  size only: the role's leading and the field's fixed height stay, and
- *  desktop keeps the role. `useSize().field` is body plus this. */
-const fieldTouchClass = "pointer-coarse:text-[16px]";
-
-export { typeStyles, typeScale, typeScaleRoles, typeClasses, typeClass, fieldTouchClass };
+export { typeStyles, typeScale, typeScaleRoles, typeClasses, typeClass };
 export type { TypeScaleRole, TypeScaleVariant, TypeScalePair, TypeScaleStep };

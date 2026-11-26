@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 // One look for every keystroke: an 18px filled cap, no outline. `inverted`
 // is the same cap on a dark surface (a tooltip, a toast, a primary button).
 const cap =
-  "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[2px] px-1 font-mono text-[length:var(--fs-micro,11px)] leading-none";
+  "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[2px] px-1 font-mono text-[length:var(--fs-micro,14px)] leading-none";
 
 const tones = {
   default: "bg-foreground/[0.08] text-muted-foreground",

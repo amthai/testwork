@@ -13,7 +13,6 @@ import {
   typeScale,
   typeClasses,
   typeClass,
-  fieldTouchClass,
   type TypeScaleRole,
   type TypeScalePair,
   type TypeScaleStep,
@@ -37,13 +36,9 @@ interface SizeClasses {
   segmentItem: string;
   /** Padding of the segmented list around its tabs. */
   segmentPad: string;
-  /** Body text inside controls (size + line height), same as `type.body`.
-   *  Its 20px line box (18px compact) is what puts a padded row on the
-   *  ladder: 8 + 20 + 8 = 36, 5 + 18 + 5 = 28. */
+  /** Labels inside controls. */
   text: string;
-  /** `text` for an editable field: the same body role, plus 16px on touch
-   *  screens (`fieldTouchClass`), since iOS Safari zooms the page into a
-   *  focused field set under 16px. */
+  /** Editable text uses the body role at either density. */
   field: string;
   /** One class string per type role at this step (size + leading). */
   type: Record<TypeScaleRole, string>;
@@ -63,33 +58,30 @@ interface SizeClasses {
 }
 
 const sizeMap: Record<SizeVariant, SizeClasses> = {
-  // 36px — the default control height. Matches a 13px label with comfortable
-  // breathing room and keeps controls a workable pointer target.
+  // 36px controls at standard density.
   default: {
     variant: "default",
     control: "h-9",
     controlHeight: 36,
     segmentItem: "h-7",
     segmentPad: "p-1",
-    text: typeClasses.default.body,
-    field: `${typeClasses.default.body} ${fieldTouchClass}`,
+    text: typeClasses.default.caption,
+    field: typeClasses.default.body,
     type: typeClasses.default,
     px: "px-3",
     itemPx: "px-2",
     gap: "gap-2",
     icon: 16,
   },
-  // 28px — the compact height for dense surfaces: filter bars, toolbars,
-  // table headers, sidebars. One step down in text (12px) and icon (14px)
-  // so the whole control shrinks together, not just its box.
+  // Compact density reduces control height and spacing.
   compact: {
     variant: "compact",
     control: "h-7",
     controlHeight: 28,
     segmentItem: "h-6",
     segmentPad: "p-0.5",
-    text: typeClasses.compact.body,
-    field: `${typeClasses.compact.body} ${fieldTouchClass}`,
+    text: typeClasses.compact.caption,
+    field: typeClasses.compact.body,
     type: typeClasses.compact,
     px: "px-2.5",
     itemPx: "px-1.5",
@@ -185,7 +177,6 @@ export {
   typeScale,
   typeClasses,
   typeClass,
-  fieldTouchClass,
 };
 export type {
   SizeVariant,

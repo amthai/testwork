@@ -33,7 +33,7 @@ export function FeedbackDetails({ session }: { session: DefenseSession }) {
           const entry = session.transcript.find(t => t.id === evidence.id)
           const requirement = session.brief?.analysis.requirements.find(r => r.id === evidence.id)
           return <blockquote key={i} className="report-evidence">
-            {entry ? <><button type="button" className="text-xs underline underline-offset-2" onClick={() => { const target = document.getElementById(`transcript-${entry.id}`); target?.closest("details")?.setAttribute("open", ""); target?.scrollIntoView({ block: "center" }) }}>{formatDuration((entry.at - session.createdAt) / 1000)} · {entry.role === "user" ? "Ты" : "Дизайн-лид"}</button><p className="mt-1">«{evidence.quote}»</p></> : requirement ? <><span className="text-xs">Из задания</span><p>«{evidence.quote}»</p></> : <p>Основание: сохранённый кадр экрана.</p>}
+            {entry ? <><button type="button" className="text-sm underline underline-offset-2" onClick={() => { const target = document.getElementById(`transcript-${entry.id}`); target?.closest("details")?.setAttribute("open", ""); target?.scrollIntoView({ block: "center" }) }}>{formatDuration((entry.at - session.createdAt) / 1000)} · {entry.role === "user" ? "Ты" : "Дизайн-лид"}</button><p className="mt-1">«{evidence.quote}»</p></> : requirement ? <><span className="text-sm">Из задания</span><p>«{evidence.quote}»</p></> : <p className="text-sm">Основание: сохранённый кадр экрана.</p>}
           </blockquote>
         })}
         <div className="report-copy mt-5 space-y-4">

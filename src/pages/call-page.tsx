@@ -54,7 +54,7 @@ export function CallPage({
     >
       <WorkspaceHeader context="Защита тестового">
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck size={15} /> Без видеозаписи</span>
+          <span className="flex items-center gap-1.5 text-sm text-muted-foreground"><ShieldCheck size={15} /> Без видеозаписи</span>
           <span className="flex min-w-[62px] items-center gap-1.5 text-sm tabular-nums text-current/75"><Clock3 className="size-3.5" /> {duration}</span>
         </div>
       </WorkspaceHeader>
@@ -65,7 +65,7 @@ export function CallPage({
           <div className="call-info">
             <p className="call-role">AI-дизайн-лид</p>
             <h1>Денис</h1>
-            {(isEnding || stage !== "presentation") && <p className="mt-2 text-xs font-medium uppercase tracking-wider text-current/75" aria-live="polite">{stageLabels[isEnding ? "closing" : stage]}</p>}
+            {(isEnding || stage !== "presentation") && <p className="mt-2 text-sm font-medium uppercase tracking-wider text-current/75" aria-live="polite">{stageLabels[isEnding ? "closing" : stage]}</p>}
             <div className="mt-2 flex h-7 items-center gap-2 text-sm text-current/75" aria-live="polite">
               {audioBlocked ? <span>Звук на паузе</span> : aiState === "speaking" ? (
                 <><span className="voice-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>{isEnding || stage === "closing" ? "Прощаюсь с тобой" : stage === "intro" ? "Приветствую тебя" : stage === "questions" ? "Задаю вопрос" : "Говорю"}</span></>
@@ -75,10 +75,10 @@ export function CallPage({
                 <><span className={cn("size-2 rounded-full", aiState === "disconnected" ? "bg-white" : "bg-neutral-400")} /><span>{aiState === "connecting" ? "Подключаемся к интервьюеру" : aiState === "thinking" ? (stage === "intro" ? "Готовлю приветствие" : "Обдумываю ответ") : "Соединение прервано"}</span></>
               )}
             </div>
-            {!isEnding && aiState !== "disconnected" && stage === "presentation" && <p className="mt-5 max-w-sm text-sm leading-(--copy-leading) text-current/75">Расскажи о работе. Когда закончишь показ, скажи Денису, что готов к вопросам.</p>}
-            {!isEnding && aiState !== "disconnected" && stage === "wrap_up" && <p className="mt-4 max-w-sm text-sm leading-(--copy-leading) text-current/75">Можно дополнить ответ или сказать, что добавлять нечего. Затем подготовим разбор.</p>}
+            {!isEnding && aiState !== "disconnected" && stage === "presentation" && <p className="mt-5 max-w-sm text-base leading-(--copy-leading) text-current/75">Расскажи о работе. Когда закончишь показ, скажи Денису, что готов к вопросам.</p>}
+            {!isEnding && aiState !== "disconnected" && stage === "wrap_up" && <p className="mt-4 max-w-sm text-base leading-(--copy-leading) text-current/75">Можно дополнить ответ или сказать, что добавлять нечего. Затем подготовим разбор.</p>}
             {audioBlocked && <Button onClick={onPlayAudio} className="mt-5"><Volume2 /> Включить звук интервьюера</Button>}
-            {(aiState === "disconnected" || error) && <div className="mt-5 max-w-md space-y-3"><p role="alert" className="text-sm leading-(--copy-leading) text-white/85">{error || "Связь с интервьюером потеряна. Уже полученные реплики сохранены."}</p><Button variant="primary" onClick={onReconnect} disabled={isJoining || isEnding}>{isJoining ? <Loader2 className="animate-spin" /> : <RefreshCcw />} Подключиться снова</Button></div>}
+            {(aiState === "disconnected" || error) && <div className="mt-5 max-w-md space-y-3"><p role="alert" className="text-base leading-(--copy-leading) text-white/85">{error || "Связь с интервьюером потеряна. Уже полученные реплики сохранены."}</p><Button variant="primary" onClick={onReconnect} disabled={isJoining || isEnding}>{isJoining ? <Loader2 className="animate-spin" /> : <RefreshCcw />} Подключиться снова</Button></div>}
             {isEnding && <p role="status" className="mt-5 flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Разбор откроется после прощания.</p>}
           </div>
 

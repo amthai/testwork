@@ -4,6 +4,7 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-26 | design | UI | [Единые размеры подписей и основного текста](entries/2026-11/2026-11-26-text-sizes.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.9.1](entries/2026-11/2026-11-26-confirmation-marks-release.md) | done |
 | 2026-11-26 | design | UI | [Цвета статусов и знаки готовности](entries/2026-11/2026-11-26-confirmation-marks.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.9.0](entries/2026-11/2026-11-26-preparation-call-release.md) | done |
