@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.9.1 — 2026-11-26
+
+Published commit `0dd0526` at 08:56 UTC. All 98 tests and CI passed. The 13 public HTML, CSS and JavaScript files matched the release build. Public health and readiness returned HTTP 200. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-confirmation-marks-release.md)
+
 ## Production — 0.9.0 — 2026-11-26
 
 Published commit `fea11f2` at 08:38 UTC. GitHub Actions passed. The public HTML, stylesheet and three JavaScript bundles matched the local build byte for byte. Public health and readiness returned HTTP 200. Bootstrap confirmed a 30-minute limit. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-preparation-call-release.md)
