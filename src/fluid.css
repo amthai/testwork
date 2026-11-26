@@ -56,7 +56,7 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
   --hover: rgb(0 0 0 / 0.04);
   --active: rgb(0 0 0 / 0.07);
   --selected: #D4D4D4;
-  --destructive-light: #FEF2F2;
+  --destructive-light: color-mix(in srgb, var(--destructive) 10%, var(--background));
   --overlay: 0 0 0;
   --fluid-accent: #6B97FF;
   --focus-ring: var(--fluid-accent);
@@ -73,7 +73,7 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
   --hover: rgb(255 255 255 / 0.06);
   --active: rgb(255 255 255 / 0.1);
   --selected: #525252;
-  --destructive-light: #450A0A;
+  --destructive-light: color-mix(in srgb, var(--destructive) 10%, var(--background));
   --overlay: 255 255 255;
   --tint: rgb(255 255 255 / 0.25);
   --tint-hover: rgb(255 255 255 / 0.2);
@@ -197,8 +197,8 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
   --typeset-space-subsection: 20px;
   --typeset-space-rule: 24px;
   --typeset-space-item: 4px;
-  --typeset-check: 16px;
-  --typeset-check-radius: 5px;
+  --typeset-check: var(--confirmation-size);
+  --typeset-check-radius: 50%;
   --typeset-check-gap: 8px;
   --typeset-check-press: 0.875;
   --typeset-indent: 24px;
@@ -226,8 +226,8 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
   --typeset-space-subsection: 12px;
   --typeset-space-rule: 16px;
   --typeset-space-item: 4px;
-  --typeset-check: 14px;
-  --typeset-check-radius: 4px;
+  --typeset-check: var(--confirmation-size);
+  --typeset-check-radius: 50%;
   --typeset-check-gap: 4px;
   --typeset-check-press: 0.8571;
   --typeset-indent: 18px;
@@ -365,25 +365,13 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
 }
   :where(.typeset input[type=checkbox]:checked):not(:where(.typeset .not-typeset, .typeset .not-typeset *)) {
   border-color: transparent;
+  background: var(--success) var(--confirmation-mark) center / var(--confirmation-size) no-repeat;
 }
   :where(.typeset input[type=checkbox]:checked:not(:disabled):hover):not(:where(.typeset .not-typeset, .typeset .not-typeset *)) {
   border-color: color-mix(in oklab, var(--foreground, currentColor) 40%, transparent);
 }
   :where(.typeset input[type=checkbox]:disabled):not(:where(.typeset .not-typeset, .typeset .not-typeset *)) {
   cursor: default;
-}
-  :where(.typeset input[type=checkbox]:checked):not(:where(.typeset .not-typeset, .typeset .not-typeset *))::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-color: var(--foreground, currentColor);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12L10 16L18 8'/%3E%3C/svg%3E") center / calc(var(--typeset-check) + 2px) no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12L10 16L18 8'/%3E%3C/svg%3E") center / calc(var(--typeset-check) + 2px) no-repeat;
-  transition: scale 180ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-  :where(.typeset input[type=checkbox]:checked:not(:disabled):active):not(:where(.typeset .not-typeset, .typeset .not-typeset *))::before {
-  scale: calc(1 / var(--typeset-check-press));
-  transition-duration: 80ms;
 }
   :where(.typeset .task-list-item input[type=checkbox]):not(:where(.typeset .not-typeset, .typeset .not-typeset *)) {
   vertical-align: -0.25em;
@@ -498,9 +486,6 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
   @media (forced-colors: active) {
   :where(.typeset input[type=checkbox]):not(:where(.typeset .not-typeset, .typeset .not-typeset *)) {
   appearance: auto;
-}
-  :where(.typeset input[type=checkbox]:checked):not(:where(.typeset .not-typeset, .typeset .not-typeset *))::before {
-  display: none;
 }
 }
   @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,4 @@
-import { Check } from "lucide-react"
+import { ConfirmationMark } from "@/components/confirmation-mark"
 import { canOpenPreparationStep, preparationSteps, type PreparationStep } from "@/lib/preparation"
 
 export function PreflightSteps({ current, hasBrief, devicesReady, disabled, onChange }: {
@@ -11,9 +11,9 @@ export function PreflightSteps({ current, hasBrief, devicesReady, disabled, onCh
         <button type="button" aria-current={index === current ? "step" : undefined}
           disabled={disabled || !canOpenPreparationStep(index, hasBrief, devicesReady)}
           onClick={() => onChange(index as PreparationStep)}>
-          <span className="prep-step-number">{index + 1}</span>
+          {complete ? <><span className="sr-only">Шаг {index + 1}</span><ConfirmationMark label="Готово" /></> :
+            <span className="prep-step-number">{index + 1}</span>}
           <span>{label}</span>
-          {complete && <Check size={13} aria-label="Готово" />}
         </button>
       </li>
     })}</ol>

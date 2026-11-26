@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react"
-import { AlertCircle, ArrowLeft, ArrowRight, BellOff, Check, CheckCircle2, FileText, Loader2, MessageSquare, Mic2, MonitorUp, ShieldCheck } from "lucide-react"
+import { AlertCircle, ArrowLeft, ArrowRight, BellOff, FileText, Loader2, MessageSquare, Mic2, MonitorUp, ShieldCheck } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ConfirmationMark } from "@/components/confirmation-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -27,7 +28,7 @@ type PreflightPageProps = {
 }
 
 function statusBadge(status: DeviceStatus) {
-  if (status === "ready") return <Badge color="green"><Check className="size-3" /> Готово</Badge>
+  if (status === "ready") return <ConfirmationMark label="Готово" />
   if (status === "requesting") return <Badge variant="solid"><Loader2 className="size-3 animate-spin" /> Проверяем</Badge>
   if (["denied", "unsupported", "ended"].includes(status)) return <Badge variant="dot">Не подключено</Badge>
   return null
@@ -59,6 +60,9 @@ export function PreflightPage(props: PreflightPageProps) {
   const devicesReady = microphoneReady && screenStatus === "ready"
   const available = Boolean(config?.configured && config.authorized)
   const ready = devicesReady && available && Boolean(brief)
+  const footerHint = step === 0
+    ? (brief ? "Задание сохранено" : "")
+    : !microphoneReady ? "Подключи микрофон" : !devicesReady ? "Выбери экран с макетами" : ""
   const locked = isJoining || assignmentBusy
   const changeStep = (next: PreparationStep) => {
     if (!locked && canOpenPreparationStep(next, Boolean(brief), devicesReady)) setStep(next)
@@ -127,10 +131,10 @@ export function PreflightPage(props: PreflightPageProps) {
           {joinError && <Alert className="rounded-xl"><AlertCircle /><AlertTitle>Не удалось подключиться</AlertTitle><AlertDescription>{joinError}</AlertDescription></Alert>}
         </CardContent>
         <CardFooter className="mt-7 flex-col items-stretch gap-4 bg-secondary/40 px-5 py-5 sm:flex-row sm:items-center sm:justify-end sm:px-9">
-          <p className="flex items-center gap-2 text-xs leading-(--copy-leading) text-muted-foreground sm:text-sm" aria-live="polite">
-            {(step === 0 ? Boolean(brief) : ready) && <CheckCircle2 className="size-4 shrink-0 fill-green-700 stroke-white" />}
-            {step === 0 ? brief ? "Задание сохранено" : "" : !microphoneReady ? "Подключи микрофон" : screenStatus === "ready" ? "Микрофон и экран готовы" : "Выбери экран с макетами"}
-          </p>
+          {footerHint && <p className="flex items-center gap-2 text-xs leading-(--copy-leading) text-muted-foreground sm:text-sm" aria-live="polite">
+            {step === 0 && <ConfirmationMark />}
+            {footerHint}
+          </p>}
           <Button size="lg" type={step === 0 && !brief ? "submit" : "button"} form={step === 0 && !brief ? "assignment-form" : undefined} className="h-12 w-full shrink-0 px-5 sm:w-auto" disabled={locked || !available || (step === 0 ? !brief && briefText.trim().length < 40 && !briefImages.length : !ready)} onClick={() => { if (step === 0 && !brief) return; if (step === 2) onJoin(); else changeStep((step + 1) as PreparationStep) }}>
             {isJoining || assignmentBusy ? <><Loader2 className="animate-spin" />{isJoining ? "Подключаемся…" : briefImages.length ? "Готовим фото…" : "Сохраняем…"}</> : <>{step === 0 ? "К подключению" : step === 1 ? "К подготовке" : "Начать созвон"}<ArrowRight /></>}
           </Button>

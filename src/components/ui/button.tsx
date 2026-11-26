@@ -38,7 +38,7 @@ const buttonVariants = cva(
         secondary: "text-foreground",
         tertiary: "text-foreground",
         ghost: "text-muted-foreground hover:text-foreground",
-        destructive: "[--btn-destructive:var(--destructive)] text-destructive",
+        destructive: "text-white",
       },
       // The two-step size ladder shared by every control — see /docs/sizes.
       // default = 36px control height, compact = 28px for dense surfaces.
@@ -138,11 +138,8 @@ const bgVariants: Record<string, string> = {
   // render only outside the surface box.
   ghost:
     "bg-transparent shadow-[0_0_0_1px_transparent] group-hover:bg-hover group-hover:shadow-[0_0_0_1px_var(--hover)] group-active:bg-active group-active:shadow-[0_0_0_0px_var(--active)]",
-  // shadcn's destructive, a red wash under red text, a step stronger:
-  // 15% at rest and 25% on hover, 20/30 in dark mode. Pressing returns
-  // to the rest wash, as secondary does.
   destructive:
-    "[--btn-bg:light-dark(color-mix(in_oklab,var(--btn-destructive)_15%,transparent),color-mix(in_oklab,var(--btn-destructive)_20%,transparent))] group-hover:[--btn-bg:light-dark(color-mix(in_oklab,var(--btn-destructive)_25%,transparent),color-mix(in_oklab,var(--btn-destructive)_30%,transparent))] group-active:[--btn-bg:light-dark(color-mix(in_oklab,var(--btn-destructive)_15%,transparent),color-mix(in_oklab,var(--btn-destructive)_20%,transparent))] bg-[var(--btn-bg)] shadow-[0_0_0_1px_var(--btn-bg)] group-active:shadow-[0_0_0_0px_var(--btn-bg)]",
+    "[--btn-bg:var(--destructive)] group-hover:[--btn-bg:color-mix(in_srgb,var(--destructive)_94%,black)] group-active:[--btn-bg:color-mix(in_srgb,var(--destructive)_86%,black)] bg-[var(--btn-bg)] shadow-[0_0_0_1px_var(--btn-bg)] group-active:shadow-[0_0_0_0px_var(--btn-bg)]",
 };
 
 /* A loading button's fill: each variant above minus its group-hover: and
@@ -170,7 +167,7 @@ const activeBgVariants: Record<string, string> = {
   ghost:
     "bg-active shadow-[0_0_0_1px_var(--active)] group-active:shadow-[0_0_0_0px_var(--active)]",
   destructive:
-    "[--btn-bg:light-dark(color-mix(in_oklab,var(--btn-destructive)_25%,transparent),color-mix(in_oklab,var(--btn-destructive)_30%,transparent))] bg-[var(--btn-bg)] shadow-[0_0_0_1px_var(--btn-bg)] group-active:shadow-[0_0_0_0px_var(--btn-bg)]",
+    "[--btn-bg:color-mix(in_srgb,var(--destructive)_86%,black)] bg-[var(--btn-bg)] shadow-[0_0_0_1px_var(--btn-bg)] group-active:shadow-[0_0_0_0px_var(--btn-bg)]",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

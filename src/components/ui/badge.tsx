@@ -8,29 +8,21 @@ import { useSizeVariant } from "@/lib/size-context";
 
 // ---------------------------------------------------------------------------
 // Badge is a short label for status, category or metadata, in 3 variants:
-//   solid: a light tint of the color behind foreground text.
+//   solid: full green/red for status labels, a light tint for other colors.
 //   dot:   a neutral outline and foreground text; only the dot is colored.
 //   ghost: the dot and its label alone, no outline and no side padding, in
 //          the surrounding text color. For rows and tables, where the label
 //          lines up with the column and lifts with the row.
-// Each color is a single hex. The solid tint is mixed against the page
-// background at render time, so the same hex works in light and dark themes.
-// ---------------------------------------------------------------------------
-
-// Tailwind's 500 step for each hue (400 for gray). Text never takes the hue:
-// it stays on the foreground color, so it keeps its contrast on every color.
-// `accent` is the app's accent (--fluid-accent, #6B97FF without the token),
-// for marks like New that should follow the brand color.
 const badgeColors = {
   accent: "var(--fluid-accent, #6B97FF)",
   gray: "#a3a3a3",
-  red: "#ef4444",
+  red: "var(--destructive)",
   orange: "#f97316",
   amber: "#f59e0b",
   yellow: "#eab308",
-  lime: "#84cc16",
-  green: "#22c55e",
-  emerald: "#10b981",
+  lime: "var(--success)",
+  green: "var(--success)",
+  emerald: "var(--success)",
   teal: "#14b8a6",
   cyan: "#06b6d4",
   blue: "#3b82f6",
@@ -39,7 +31,7 @@ const badgeColors = {
   purple: "#a855f7",
   fuchsia: "#d946ef",
   pink: "#ec4899",
-  rose: "#f43f5e",
+  rose: "var(--destructive)",
 } as const;
 
 type BadgeColor = keyof typeof badgeColors;
@@ -122,18 +114,12 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     const isSolid = variant === "solid";
     const dotSize = size === "compact" ? 6 : 7;
 
-    // 15% of the hue mixed into the page background: a tint that sits at the
-    // right depth in either theme, under plain foreground text. Gray skips
-    // the mix and takes the theme's neutral fill (`--accent`), so a gray
-    // badge matches the other neutral fills around it.
-    const colorStyle = isSolid
-      ? color === "gray"
-        ? { backgroundColor: "var(--accent)", color: "var(--foreground)" }
-        : {
-            color: "var(--foreground)",
-            backgroundColor: `color-mix(in srgb, ${colorValue} 15%, var(--background))`,
-          }
-      : {};
+    const statusFill = colorValue === badgeColors.green || colorValue === badgeColors.red;
+    const tint = color === "gray" ? "var(--accent)" : `color-mix(in srgb, ${colorValue} 15%, var(--background))`;
+    const colorStyle = isSolid ? {
+      backgroundColor: statusFill ? colorValue : tint,
+      color: statusFill ? "white" : "var(--foreground)",
+    } : {};
 
     // The dot carries the full-strength hex. Gray uses the theme's muted text
     // color instead, so the neutral dot stays visible in both themes.

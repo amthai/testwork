@@ -96,7 +96,7 @@ export function CallPage({
           title={screenIsLive ? screenSent ? "Кадр экрана получен · Остановить показ" : "Остановить показ" : "Показать экран"}>
           Экран
         </Button>
-        <Button variant="primary" className="call-end" leadingIcon={PhoneOff} onClick={onEnd} disabled={isEnding}>
+        <Button variant="destructive" leadingIcon={PhoneOff} onClick={onEnd} disabled={isEnding}>
           Завершить
         </Button>
       </div>
