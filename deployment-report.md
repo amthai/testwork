@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.9.3 — 2026-11-26
+
+Published commit `3fb5de1` at 09:47 UTC. All 98 tests and release CI passed. All 13 public HTML, CSS and JavaScript files matched the clean build. Health, readiness and bootstrap returned HTTP 200. The production preparation screen showed both main navigation links and a focused assignment field with a #f3f3f3 fill. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-report-navigation-fields-release.md)
+
 ## Production — 0.9.2 — 2026-11-26
 
 Published commit `475a6ce` at 09:25 UTC. All 98 tests and the release CI passed. All 13 public HTML, CSS and JavaScript files matched the clean build. HTTPS health and readiness returned 200. The production homepage rendered its button and navigation at 14 px and its description at 16 px. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-text-sizes-release.md)

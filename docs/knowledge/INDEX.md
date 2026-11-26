@@ -4,6 +4,7 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-26 | infra | deployment | [Публикация Proof 0.9.3](entries/2026-11/2026-11-26-report-navigation-fields-release.md) | done |
 | 2026-11-26 | design | UI | [Разбор, основное меню и фокус полей](entries/2026-11/2026-11-26-report-navigation-fields.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.9.2](entries/2026-11/2026-11-26-text-sizes-release.md) | done |
 | 2026-11-26 | design | UI | [Единые размеры подписей и основного текста](entries/2026-11/2026-11-26-text-sizes.md) | done |
