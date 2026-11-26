@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.11.0 — 2026-11-26
+
+Published commit `1828a9f` at 11:03 UTC. All 112 tests and release CI passed. HTTPS checks matched 18 files including all four interviewer portraits. Health, readiness and bootstrap returned 200. Both services were healthy. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-26-call-portraits-release.md).
+
 ## Production — 0.10.0 — 2026-11-26
 
 Proof switched to commit `90fad44` at 10:41:37 UTC (19:41:37 Chita). The release images are `testwork-proof:0.10.0-20261126` and `proof-speech:0.10.0-20261126`. The clean build passed all 112 tests. The dependency audit found four moderate issues and zero high or critical issues. [Release CI](https://github.com/amthai/testwork/actions/runs/45802437322).

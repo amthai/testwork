@@ -50,13 +50,6 @@ deploy/nginx.conf относится к предыдущему статичес�
 
 ## Текущий релиз
 
-26 ноября 2026 в 19:41:37 по Чите опубликована версия 0.10.0 с командой интервьюеров. Приложение работает из образа `testwork-proof:0.10.0-20261126`, служба речи — `proof-speech:0.10.0-20261126`. Публичный `/api/bootstrap` подтвердил DeepSeek и Яндекс. [Журнал релизов](../../deployment-report.md).
+26 ноября 2026 в 20:03 по Чите опубликована версия 0.11.0 с портретами команды. Рабочий образ приложения — `testwork-proof:0.11.0-20261126`, запущенная служба речи — `proof-speech:0.10.0-20261126`. Тег `proof-speech:0.11.0-20261126` указывает на тот же речевой образ. [Журнал релизов](../../deployment-report.md).
 
-Для отката к 0.9.4 перейди в `/opt/testwork-proof/releases/0.9.4-20261126`. В этом релизе у веб-приложения и службы речи разные теги. Восстанови их в следующем порядке с сохранением рабочих томов.
-
-```bash
-APP_VERSION=0.3.0-20261123 docker compose --profile speech up -d --no-deps --no-build speech
-docker compose up -d --no-deps --no-build web
-```
-
-Проверь обе службы и публичный `/health/ready`. После успешной проверки направь `/opt/testwork-proof/current` на каталог версии 0.9.4. [Проверка резервной копии и результаты публикации](../knowledge/entries/2026-11/2026-11-26-interview-team-release.md).
+Для отката к 0.10.0 выполни `docker compose up -d --no-deps --no-build web` в `/opt/testwork-proof/releases/0.10.0-20261126`. Проверь публичный `/health/ready` и верни ссылку `/opt/testwork-proof/current` на этот каталог. [Результаты проверки и резервная копия](../knowledge/entries/2026-11/2026-11-26-call-portraits-release.md).
