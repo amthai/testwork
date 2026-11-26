@@ -34,11 +34,11 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           "field-sizing-content resize-none",
           "transition-[background-color,border-color] duration-80",
           "placeholder:text-muted-foreground",
-          "hover:bg-hover",
+          "not-focus:hover:bg-hover",
           "aria-invalid:border-destructive/50",
           // Focus wins over the error tint while the value is fixed; the
           // stacked variant outranks aria-invalid, which Tailwind sorts last.
-          "focus:border-foreground/40 aria-invalid:focus:border-foreground/40 focus:hover:bg-transparent",
+          "focus:border-foreground/40 aria-invalid:focus:border-foreground/40 focus:bg-secondary",
           "disabled:opacity-50 disabled:pointer-events-none",
           // The first line sits where an Input's text does: (36 - 2 - 20) / 2
           // = 7px of padding, (28 - 2 - 18) / 2 = 4px compact. The minimum is

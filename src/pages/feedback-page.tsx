@@ -34,11 +34,11 @@ export function FeedbackPage({ session, error, onRetry, onRepeat, onHome, onBack
   }
   return (
     <motion.div className="min-h-svh report-page" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring.slow}>
-      <WorkspaceHeader context="Разбор защиты" onHome={onHome} />
+      <WorkspaceHeader current="history" onHome={onHome} />
       <main id="main-content" className="report-main">
         <Button variant="ghost" className="report-back" onClick={onBack}><ArrowLeft /> Назад к защитам</Button>
         <section className="report-intro report-section">
-          <Badge variant="solid" color="gray">{generating ? "Готовим разбор" : "Защита сохранена"}</Badge>
+          {generating && <Badge variant="solid" color="gray">Готовим разбор</Badge>}
           <h1>{feedback?.title ?? (generating ? "Собираем твой разбор" : session.status === "insufficient" ? "Мало данных для разбора" : "Твоя защита сохранена")}</h1>
           <p className="report-summary">{feedback?.summary ?? (generating ? "Сопоставляем твои аргументы, ответы и показанные экраны. Разбор появится здесь — можно вернуться к нему из «Мои защиты»." : session.error ?? "Можно подготовить разбор по сохранённым репликам.")}</p>
           <div className="report-metrics"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" /> {duration}</span><span>Твоих реплик · {transcript.filter(item => item.role === "user").length}</span><span>Кадров экрана · {session.frameCount}</span></div>
@@ -51,10 +51,6 @@ export function FeedbackPage({ session, error, onRetry, onRepeat, onHome, onBack
               {group.items.length === 0 && <p className="report-description">Пока недостаточно данных для уверенного вывода.</p>}
               <div className="report-items">{group.items.map((item, index) => <article key={index} className="report-item">
                 <h3 className="report-item-title">{item.title}</h3><p className="report-description">{item.detail}</p>
-                {item.evidenceIds.map(id => {
-                  const entry = transcript.find(t => t.id === id)
-                  return entry ? <blockquote key={id} className="report-evidence"><a href={`#transcript-${id}`} onClick={event => { event.preventDefault(); const target = document.getElementById(`transcript-${id}`); target?.closest("details")?.setAttribute("open", ""); target?.scrollIntoView({ block: "center" }) }} className="text-sm underline underline-offset-2">{stamp(entry.at)}</a> · {entry.text}</blockquote> : <p key={id} className="mt-2 text-sm text-muted-foreground">По показанному экрану</p>
-                })}
               </article>)}</div>
             </section>)}
           </div>
@@ -64,7 +60,7 @@ export function FeedbackPage({ session, error, onRetry, onRepeat, onHome, onBack
         </>}
         {!feedback && !generating && session.status !== "insufficient" && <Button className="mt-7" disabled={busy} onClick={async () => { setBusy(true); try { await onRetry() } finally { setBusy(false) } }}>{busy ? <Loader2 className="animate-spin" /> : <RefreshCcw />} {session.status === "failed" ? "Повторить разбор" : "Подготовить разбор"}</Button>}
         {transcript.length > 0 && <details className="report-section report-transcript"><summary className="report-section-title cursor-pointer">Расшифровка разговора ({transcript.length})</summary><div className="mt-5 space-y-5">{transcript.map(item => <div id={`transcript-${item.id}`} key={item.id} className="transcript-turn" data-role={item.role}><p className="text-sm text-muted-foreground">{stamp(item.at)} · {item.role === "user" ? "Ты" : "Proof"}{item.interrupted ? " · Реплика прервана, часть текста могла не прозвучать" : ""}</p><p className="report-copy mt-1 whitespace-pre-wrap">{item.text}</p></div>)}</div></details>}
-        <div className="report-actions"><Button size="lg" className="h-12 px-6" onClick={onRepeat}><RefreshCcw /> Повторить защиту</Button><Button variant="tertiary" size="lg" className="h-12 px-6" onClick={onHome}><ArrowLeft /> На главную</Button>{transcript.length > 0 && <Button variant="ghost" className="h-12" onClick={download}><Download /> Скачать</Button>}</div>
+        <div className="report-actions"><Button size="lg" className="h-12 px-6" onClick={onRepeat}><RefreshCcw /> Повторить защиту</Button>{transcript.length > 0 && <Button variant="ghost" className="h-12" onClick={download}><Download /> Скачать</Button>}</div>
         <div className="mt-8 pt-2 text-base text-muted-foreground"><p>Результат доступен в «Мои защиты» на этом устройстве. Удаление очистит расшифровку, кадры и разбор на сервере.</p>
           {!confirmDelete ? <Button variant="ghost" className="mt-3 text-muted-foreground" onClick={() => setConfirmDelete(true)}><Trash2 /> Удалить сессию</Button> : <div className="mt-3 flex flex-wrap items-center gap-3"><span>Удалить эту защиту без восстановления?</span><Button variant="destructive" disabled={busy} onClick={async () => { setBusy(true); try { await onDelete() } finally { setBusy(false) } }}>Да, удалить</Button><Button variant="ghost" onClick={() => setConfirmDelete(false)}>Отмена</Button></div>}
         </div>

@@ -75,6 +75,10 @@ export const reportDetailsSchema = z.object({
   coverage: z.array(coverageSchema), findings: z.array(findingSchema), rewrites: z.array(rewriteSchema),
 })
 export type ReportDetails = z.infer<typeof reportDetailsSchema>
+export function assignmentQuotes(finding: ReportDetails["findings"][number], brief: Brief | null) {
+  return finding.evidence.filter(source => brief?.analysis.requirements.some(requirement => requirement.id === source.id))
+}
+
 export const findingLabels = { work: "В работе", answer: "В ответе", omission: "Не раскрыто", unverified: "Не проверено" } as const
 export const basisLabels = { requirement: "Требование задания", risk: "Риск решения", recommendation: "Рекомендация", insufficient: "Недостаточно данных" } as const
 export const coverageLabels = { supported: "Подтверждено", gap: "Есть пробел", not_discussed: "Не обсуждали", not_verifiable: "Не удалось проверить" } as const

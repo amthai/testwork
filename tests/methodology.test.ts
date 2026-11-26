@@ -90,11 +90,23 @@ test("interrupted questions cannot support a negative answer assessment", () => 
   assert.ok(validatePlan(session, { ...plan, assessment: { status: "vague", summary: "", evidenceIds: ["u2"] } }))
 })
 test("markdown export includes source assignment, findings, actions and transcript", () => {
-  const md = reportMarkdown(exampleSession)
-  assert.ok(md.includes(briefText))
-  assert.ok(md.includes(report.details!.findings[0].prepareForDefense!))
-  assert.ok(md.includes("## Расшифровка"))
-  assert.ok(md.includes("Не знаю, этот случай не продумал."))
+  const session = structuredClone(exampleSession)
+  const details = session.feedback!.details!
+  const answer = session.transcript[2]
+  details.rewrites.push({ sourceId: answer.id, before: answer.text, after: "Предложенный вариант ответа", note: "Уточни следующий шаг." })
+  const requirement = brief.analysis.requirements[0]
+  details.findings[0].evidence.push({ id: requirement.id, quote: requirement.quote }, { id: "frame-1", quote: "" })
+  session.feedback!.strengths[0].evidenceIds.push("frame-1")
+  const [analysis, transcript] = reportMarkdown(session).split("## Расшифровка\n")
+  assert.ok(analysis.includes(briefText))
+  assert.ok(analysis.includes(details.findings[0].prepareForDefense!))
+  assert.ok(analysis.includes(details.rewrites[0].after))
+  assert.ok(analysis.includes(`Из задания: «${requirement.quote}»`))
+  assert.ok(!analysis.includes("Основание: кадр экрана"))
+  for (const turn of session.transcript) {
+    assert.ok(!analysis.includes(turn.text))
+    assert.ok(transcript.includes(turn.text))
+  }
 })
 
 const requestSchema = z.object({ type: z.literal("response.create"), response: z.object({ metadata: z.object({ proof_turn: z.string(), mode: z.string() }), tools: z.array(z.unknown()), output_modalities: z.array(z.string()) }).passthrough() })

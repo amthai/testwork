@@ -1,6 +1,6 @@
-import { Frown, Smile } from "lucide-react"
-import { coverageLabels } from "@/lib/methodology"
-import { formatDuration, type DefenseSession } from "@/lib/session"
+import { Smile } from "lucide-react"
+import { assignmentQuotes, coverageLabels } from "@/lib/methodology"
+import type { DefenseSession } from "@/lib/session"
 import { Badge } from "@/components/ui/badge"
 
 export function FeedbackDetails({ session }: { session: DefenseSession }) {
@@ -26,16 +26,11 @@ export function FeedbackDetails({ session }: { session: DefenseSession }) {
       <p className="report-description">Что можно улучшить в работе и её объяснении, а что стоит проверить отдельно.</p>
       {details.findings.length === 0 && <p className="report-copy mt-4">Подтверждённых проблем для подробного разбора пока нет. Это не означает, что проверена вся работа.</p>}
       <div className="report-items">{details.findings.map((finding, index) => <article key={index} className="report-item">
-        <p className="report-priority">{finding.priority === "high" ? "В первую очередь" : finding.priority === "medium" ? "Следующим шагом" : "Для дальнейшей практики"}</p>
         <h3 className="report-item-title">{finding.title}</h3>
         <p className="report-copy mt-2 whitespace-pre-wrap">{finding.observation}</p>
-        {finding.evidence.map((evidence, i) => {
-          const entry = session.transcript.find(t => t.id === evidence.id)
-          const requirement = session.brief?.analysis.requirements.find(r => r.id === evidence.id)
-          return <blockquote key={i} className="report-evidence">
-            {entry ? <><button type="button" className="text-sm underline underline-offset-2" onClick={() => { const target = document.getElementById(`transcript-${entry.id}`); target?.closest("details")?.setAttribute("open", ""); target?.scrollIntoView({ block: "center" }) }}>{formatDuration((entry.at - session.createdAt) / 1000)} · {entry.role === "user" ? "Ты" : "Дизайн-лид"}</button><p className="mt-1">«{evidence.quote}»</p></> : requirement ? <><span className="text-sm">Из задания</span><p>«{evidence.quote}»</p></> : <p className="text-sm">Основание: сохранённый кадр экрана.</p>}
-          </blockquote>
-        })}
+        {assignmentQuotes(finding, session.brief).map((source, i) => <blockquote key={i} className="report-evidence">
+          <span className="text-sm">Из задания</span><p>«{source.quote}»</p>
+        </blockquote>)}
         <div className="report-copy mt-5 space-y-4">
           <div><h4 className="font-medium">Почему это важно</h4><p className="mt-1 text-muted-foreground">{finding.whyItMatters}</p></div>
           {finding.fixInWork && <div><h4 className="font-medium">Что изменить в работе</h4><p className="mt-1 text-muted-foreground">{finding.fixInWork}</p></div>}
@@ -47,10 +42,7 @@ export function FeedbackDetails({ session }: { session: DefenseSession }) {
       <h2 className="report-section-title">Как яснее сформулировать мысль</h2>
       <p className="report-description">Варианты на основе сказанного. Не добавляй к ответу исследования и результаты, которых не было.</p>
       <div className="report-items">{details.rewrites.map((rewrite, i) => <article key={i} className="report-item">
-        <div className="rewrite-pair">
-          <div className="rewrite-panel rewrite-before"><h3><Frown size={20} aria-hidden="true" />Как прозвучало</h3><blockquote className="report-copy mt-3">{rewrite.before}</blockquote></div>
-          <div className="rewrite-panel rewrite-after"><h3><Smile size={20} aria-hidden="true" />Более ясная формулировка</h3><p className="report-copy mt-3">{rewrite.after}</p></div>
-        </div>
+        <div className="rewrite-panel"><h3><Smile size={20} aria-hidden="true" />Более ясная формулировка</h3><p className="report-copy mt-3">{rewrite.after}</p></div>
         <p className="report-description mt-3">{rewrite.note}</p>
       </article>)}</div>
     </section>}

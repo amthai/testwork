@@ -19,11 +19,11 @@ const inputClasses = [
   "w-full min-w-0 border border-border bg-transparent text-foreground outline-none",
   "transition-[background-color,border-color] duration-80",
   "placeholder:text-muted-foreground",
-  "hover:bg-hover",
+  "not-focus:hover:bg-hover",
   "aria-invalid:border-destructive/50",
   // Focus wins over the error tint while the value is fixed. Tailwind sorts
   // aria-* after focus, so the invalid case needs its own stacked variant.
-  "focus:border-foreground/40 aria-invalid:focus:border-foreground/40 focus:hover:bg-transparent",
+  "focus:border-foreground/40 aria-invalid:focus:border-foreground/40 focus:bg-secondary",
   "disabled:opacity-50 disabled:pointer-events-none",
   "file:mr-2 file:cursor-pointer file:border-0 file:bg-transparent file:p-0 file:font-[inherit] file:text-[length:inherit] file:text-foreground",
 ];

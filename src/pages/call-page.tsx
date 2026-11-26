@@ -52,7 +52,7 @@ export function CallPage({
       exit={{ opacity: 0 }}
       transition={spring.slow}
     >
-      <WorkspaceHeader context="Защита тестового">
+      <WorkspaceHeader current="studio" openInNewTab>
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="flex items-center gap-1.5 text-sm text-muted-foreground"><ShieldCheck size={15} /> Без видеозаписи</span>
           <span className="flex min-w-[62px] items-center gap-1.5 text-sm tabular-nums text-current/75"><Clock3 className="size-3.5" /> {duration}</span>

@@ -38,19 +38,6 @@ function App() {
   const screenContext = useScreenContext(view === "call" && !isEnding && aiState !== "disconnected" ? session?.id ?? null : null, media.screenStream)
   useEffect(() => { window.scrollTo(0, 0) }, [view])
 
-  useEffect(() => {
-    if (view !== "landing" && view !== "history") return
-    const followSectionLink = () => {
-      const hash = window.location.hash
-      if (hash === "#history" || hash === "#studio" || !hash) {
-        setError("")
-        setView(hash === "#history" ? "history" : "landing")
-      }
-    }
-    window.addEventListener("hashchange", followSectionLink)
-    return () => window.removeEventListener("hashchange", followSectionLink)
-  }, [view])
-
   const loadConfig = useCallback(async () => {
     try { setConfig(await api.bootstrap()); setError("") } catch (cause) { setError(errorMessage(cause)) }
   }, [])
@@ -181,9 +168,32 @@ function App() {
 
   const openSession = useCallback(async (id: string) => {
     reset()
-    try { const saved = await api.session(id); setSession(saved); setView("feedback"); window.history.replaceState(null, "", `#session=${id}`) }
-    catch (cause) { setError(errorMessage(cause)) }
+    const current = operation.current
+    try {
+      const saved = await api.session(id)
+      if (operation.current !== current) return
+      setSession(saved); setView("feedback")
+      window.history.replaceState(null, "", `#session=${id}`)
+    } catch (cause) { if (operation.current === current) setError(errorMessage(cause)) }
   }, [reset])
+
+  useEffect(() => {
+    if (view === "call") return
+    const followSectionLink = () => {
+      const hash = window.location.hash
+      if (hash === "#history" || hash === "#studio" || !hash) {
+        reset()
+        window.history.replaceState(null, "", hash || window.location.pathname)
+        setView(hash === "#history" ? "history" : "landing")
+      } else {
+        const id = /^#session=([a-f0-9-]{36})$/.exec(hash)?.[1]
+        if (id) void openSession(id)
+      }
+    }
+    window.addEventListener("hashchange", followSectionLink)
+    return () => window.removeEventListener("hashchange", followSectionLink)
+  }, [view, reset, openSession])
+
   useEffect(() => {
     if (!config) return
     const id = /^#session=([a-f0-9-]{36})$/.exec(window.location.hash)?.[1]

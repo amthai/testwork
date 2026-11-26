@@ -70,7 +70,7 @@ export function PreflightPage(props: PreflightPageProps) {
   useEffect(() => { heading.current?.focus({ preventScroll: true }); window.scrollTo(0, 0) }, [step])
 
   return <motion.div className="min-h-svh bg-background" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reducedMotion ? { duration: 0 } : spring.moderate}>
-    <WorkspaceHeader context="Подготовка к защите" onHome={locked ? undefined : onBack} />
+    <WorkspaceHeader current="studio" openInNewTab={locked} onHome={locked ? undefined : onBack} />
     <main id="main-content" className="preflight-layout">
       <div className="prep-navigation">
       <Button variant="ghost" disabled={locked} className="mb-5 -ml-2 h-10 w-fit px-2 text-muted-foreground" onClick={() => step === 0 ? onBack() : changeStep((step - 1) as PreparationStep)}><ArrowLeft />{step === 0 ? "На главную" : "Назад"}</Button>
