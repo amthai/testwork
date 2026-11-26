@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.9.0 — 2026-11-26
+
+Published commit `fea11f2` at 08:38 UTC. GitHub Actions passed. The public HTML, stylesheet and three JavaScript bundles matched the local build byte for byte. Public health and readiness returned HTTP 200. Bootstrap confirmed a 30-minute limit. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-preparation-call-release.md)
+
 ## Production — 0.8.4 — 2026-11-26
 
 Published the centered screen loader at 06:54 UTC (15:54 Chita). The isolated candidate passed readiness and restart checks. Public health and readiness returned HTTP 200. HTML, CSS, the main JavaScript bundle and the history module matched the local build byte for byte. Both services are healthy. The previous web image is `testwork-proof:0.8.3-20261126`. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-26-screen-loader-release.md)

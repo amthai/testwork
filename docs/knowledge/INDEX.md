@@ -4,6 +4,7 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-26 | infra | deployment | [Публикация Proof 0.9.0](entries/2026-11/2026-11-26-preparation-call-release.md) | done |
 | 2026-11-26 | UI | подготовка и звонок | [Устройства и управление звонком](entries/2026-11/2026-11-26-preparation-and-call.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация индикатора загрузки 0.8.4](entries/2026-11/2026-11-26-screen-loader-release.md) | done |
 | 2026-11-26 | design | UI | [Круглый индикатор загрузки экранов](entries/2026-11/2026-11-26-screen-loader.md) | done |
