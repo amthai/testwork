@@ -8,7 +8,7 @@ import type { DeviceStatus } from "@/hooks/use-media-session"
 import { cn } from "@/lib/utils"
 
 import type { AiState } from "@/lib/realtime"
-import { interviewerNames, interviewerLabels, type InterviewerId } from "@/lib/interviewers"
+import { interviewerIdSchema, interviewerNames, interviewerLabels, type InterviewerId } from "@/lib/interviewers"
 import { stageLabels, type InterviewStage } from "@/lib/methodology"
 
 type CallPageProps = {
@@ -63,14 +63,23 @@ export function CallPage({
 
       <main id="main-content" className="call-main">
         <section className="call-stage">
-          <VoiceAvatar filled speaker={speaker} />
+          <h1 className="sr-only">Команда интервьюеров</h1>
+          <div className="call-team">
+            {interviewerIdSchema.options.map(id => (
+              <figure className="call-member" key={id} data-speaking={id === speaker && aiState === "speaking" && !audioBlocked}>
+                <VoiceAvatar filled speaker={id} />
+                <figcaption>
+                  <strong>{interviewerNames[id]}</strong>
+                  <span>{interviewerLabels[id]}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
           <div className="call-info">
-            <p className="call-role">{interviewerLabels[speaker]}</p>
-            <h1 aria-live="polite">{interviewerNames[speaker]}</h1>
             {(isEnding || stage !== "presentation") && <p className="mt-2 text-sm font-medium uppercase tracking-wider text-current/75" aria-live="polite">{stageLabels[isEnding ? "closing" : stage]}</p>}
             <div className="mt-2 flex h-7 items-center gap-2 text-sm text-current/75" aria-live="polite">
               {audioBlocked ? <span>Звук на паузе</span> : aiState === "speaking" ? (
-                <><span className="voice-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>{isEnding || stage === "closing" ? "Прощаюсь с тобой" : stage === "intro" ? "Приветствую тебя" : stage === "questions" ? "Задаю вопрос" : "Говорю"}</span></>
+                <><span className="voice-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>{interviewerNames[speaker]} · {isEnding || stage === "closing" ? "Прощаюсь с тобой" : stage === "intro" ? "Приветствую тебя" : stage === "questions" ? "Задаю вопрос" : "Говорю"}</span></>
               ) : aiState === "listening" ? (
                 <><span className="size-2 animate-pulse rounded-full bg-white" /><span>{isEnding ? "Завершаем разговор" : "Слушаю тебя"}</span></>
               ) : (

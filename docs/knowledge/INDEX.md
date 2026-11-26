@@ -4,6 +4,7 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-26 | UI | звонок | [Портреты команды на экране звонка](entries/2026-11/2026-11-26-call-portraits.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.10.0 с командой интервьюеров](entries/2026-11/2026-11-26-interview-team-release.md) | done |
 | 2026-11-26 | feature | методология | [Четыре роли в тренировочной защите](entries/2026-11/2026-11-26-interview-team.md) | done |
 | 2026-11-26 | infra | deployment | [Публикация Proof 0.9.4](entries/2026-11/2026-11-26-restore-rewrite-comparison-release.md) | done |

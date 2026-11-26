@@ -1,4 +1,4 @@
-import { interviewerNames, type InterviewerId } from "@/lib/interviewers"
+import type { InterviewerId } from "@/lib/interviewers"
 import { VoicePortrait } from "@/components/voice-portrait"
 
 // Three contours share a circular baseline but have different wave phases.
@@ -20,6 +20,6 @@ export function VoiceAvatar({ filled = false, speaker = "design_lead" }: { fille
     <svg className="avatar-waves" viewBox="0 0 240 240" fill="none">
       {(filled ? [...contours].reverse() : contours).map(path => <path key={path} d={path} />)}
     </svg>
-    <div className="avatar-crop">{speaker === "design_lead" ? <VoicePortrait /> : <span className="avatar-initial">{interviewerNames[speaker][0]}</span>}</div>
+    <div className="avatar-crop" data-role={speaker}><VoicePortrait speaker={speaker} /></div>
   </div>
 }
