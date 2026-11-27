@@ -1,4 +1,4 @@
-# Документация Proof
+# Документация «Вслух»
 
 Это единая точка входа в документацию проекта.
 
@@ -42,7 +42,7 @@
 
 - [Карточки истории и отчёта](superpowers/specs/2026-11-26-report-cards-design.md) — единые секции, цветные статусы и возврат к списку.
 
-- [Студия защиты Proof](superpowers/specs/2026-11-25-fluid-studio.md) — дизайн всех экранов на Fluid Functionalism.
+- [Студия защиты «Вслух»](superpowers/specs/2026-11-25-fluid-studio.md) — дизайн всех экранов на Fluid Functionalism.
 
 - [Задание как контекст и управление разговором](superpowers/specs/2026-11-25-assignment-and-voice-controls.md) — подготовка и завершение защиты с версии 0.7.
 

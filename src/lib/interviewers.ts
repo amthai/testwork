@@ -10,5 +10,5 @@ export const interviewerLabels: Record<InterviewerId, string> = {
   design_lead: "Дизайн-лид", product_manager: "Продакт-менеджер", cpo: "CPO", systems_analyst: "Системный аналитик",
 }
 export function speakerLabel(speaker?: InterviewerId) {
-  return speaker ? interviewerNames[speaker] + " · " + interviewerLabels[speaker] : "Proof"
+  return speaker ? interviewerNames[speaker] + " · " + interviewerLabels[speaker] : "Вслух"
 }

@@ -13,7 +13,7 @@ export function WorkspaceHeader({ current, openInNewTab, onHome, children }: Pro
   return <header className="workspace-header">
     <div className="header-inner">
       <Logo onClick={onHome} />
-      <nav className="studio-nav" aria-label="Разделы Proof">
+      <nav className="studio-nav" aria-label="Разделы «Вслух»">
         <a {...linkProps} href="#studio" aria-current={current === "studio" ? "page" : undefined}>Студия</a>
         <a {...linkProps} href="#history" aria-current={current === "history" ? "page" : undefined}>Мои защиты</a>
       </nav>

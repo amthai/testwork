@@ -30,7 +30,7 @@ export function FeedbackPage({ session, error, onRetry, onRepeat, onHome, onBack
   const download = () => {
     const url = URL.createObjectURL(new Blob([reportMarkdown(session)], { type: "text/markdown;charset=utf-8" }))
     const anchor = document.createElement("a")
-    anchor.href = url; anchor.download = `proof-${new Date(session.createdAt).toISOString().slice(0, 10)}.md`; anchor.click()
+    anchor.href = url; anchor.download = `Вслух-${new Date(session.createdAt).toISOString().slice(0, 10)}.md`; anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   return (

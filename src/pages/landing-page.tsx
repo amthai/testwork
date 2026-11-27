@@ -16,7 +16,7 @@ export function LandingPage({ onStart, maxMinutes }: { onStart: () => void; maxM
       <section className="studio-hero" aria-labelledby="studio-title">
         <div className="hero-copy">
 
-          <h1 id="studio-title">Защити тестовое<br />до собеседования</h1>
+          <h1 id="studio-title">Репетиция защиты тестового<br />для дизайнеров</h1>
           <p>Покажи макеты дизайн-лиду Денису. На защите к нему могут подключиться продакт-менеджер, CPO и системный аналитик. После разговора получишь разбор.</p>
           <div className="hero-actions">
             <Button className="hero-start" trailingIcon={ArrowRight} onClick={onStart}>Начать защиту</Button>
@@ -37,6 +37,6 @@ export function LandingPage({ onStart, maxMinutes }: { onStart: () => void; maxM
           </li>)}</ol>
       </section>
     </main>
-    <footer className="studio-footer"><span>© 2026 Proof</span><span>Для продуктовых дизайнеров</span></footer>
+    <footer className="studio-footer"><span>© 2026 Вслух</span><span>Для продуктовых дизайнеров</span></footer>
   </div>
 }

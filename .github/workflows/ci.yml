@@ -1,4 +1,4 @@
-name: Verify Proof
+name: Verify Вслух
 on:
   push:
   pull_request:

@@ -1,4 +1,4 @@
-"""Private PCM16 (16 kHz mono) recognition and WAV synthesis for the Proof backend."""
+"""Private PCM16 (16 kHz mono) recognition and WAV synthesis for the Вслух backend."""
 import io
 import json
 import os
@@ -19,7 +19,7 @@ recognizer = sherpa_onnx.OfflineRecognizer.from_nemo_ctc(
 )
 inference = threading.Lock()
 # Only pronounce the assistant's words. Candidate transcripts stay verbatim.
-pronunciations = {"figma": "Фигма", "a/b": "а бэ", "ux": "ю икс", "ui": "ю ай", "proof": "Пруф"}
+pronunciations = {"figma": "Фигма", "a/b": "а бэ", "ux": "ю икс", "ui": "ю ай"}
 terms = re.compile(r"\b(" + "|".join(map(re.escape, pronunciations)) + r")\b", re.IGNORECASE)
 
 

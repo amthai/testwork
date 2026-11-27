@@ -5,7 +5,7 @@ import { formatDuration, type DefenseSession } from "./session"
 export function reportMarkdown(session: DefenseSession) {
   const { feedback, transcript, brief } = session
   const stamp = (at: number) => formatDuration((at - session.createdAt) / 1000)
-  const lines = ["# Proof — разбор защиты", "", `Длительность: ${stamp(session.endedAt ?? Date.now())}`, ""]
+  const lines = ["# Вслух — разбор защиты", "", `Длительность: ${stamp(session.endedAt ?? Date.now())}`, ""]
   if (brief) lines.push("## Исходное задание", "", brief.text, "")
   for (const source of brief?.analysis.imageSources ?? []) lines.push(`### Фото задания: ${brief?.images.find(image => image.id === source.id)?.name ?? "Фото"}`, "", "Распознанный текст (возможны ошибки):", "", source.text, "", source.description, "")
   if (feedback) {
