@@ -19,6 +19,7 @@ const envSchema = z.object({
   PROOF_ACCESS_CODE: z.string().default(""),
   DATA_DIR: z.string().default("data"),
   MAX_SESSION_SECONDS: z.coerce.number().int().min(30).max(2700).default(1800),
+  DAILY_CALL_LIMIT_ENABLED: z.enum(["true", "false"]).default("true").transform(value => value === "true"),
   MAX_DAILY_SESSIONS: z.coerce.number().int().positive().default(30),
   MAX_OWNER_DAILY_SESSIONS: z.coerce.number().int().positive().default(5),
   MAX_CONCURRENT_SESSIONS: z.coerce.number().int().positive().default(3),

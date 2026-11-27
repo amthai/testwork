@@ -124,6 +124,16 @@ test("daily budget and concurrent slot checks reserve before provider call", asy
   assert.equal((await create()).statusCode, 429)
   assert.equal(provider.calls, 1)
 })
+test("test mode permits new calls after both daily limits are reached", async t => {
+  const { app, create, headers, store } = await setup(t, {
+    DAILY_CALL_LIMIT_ENABLED: "false", MAX_DAILY_SESSIONS: "1", MAX_OWNER_DAILY_SESSIONS: "1",
+  })
+  const first = await create()
+  assert.equal(first.statusCode, 200)
+  await app.inject({ method: "POST", url: `/api/sessions/${first.json().session.id}/interrupt`, headers })
+  assert.equal((await create()).statusCode, 200)
+  assert.equal(store.attempts(), 2)
+})
 test("completed provider transcripts are deduplicated and ordered by speech start", async t => {
   const { create, provider, store } = await setup(t)
   const id = (await create()).json().session.id as string
@@ -337,7 +347,7 @@ test("text is saved even if the model is unavailable, and photo OCR errors leave
   assert.equal(store.all()[0].brief?.text, briefText)
 })
 test("only photo OCR spends the draft model allowance", async t => {
-  const { app, headers, provider } = await setup(t, { MAX_OWNER_DAILY_SESSIONS: "1" })
+  const { app, headers, provider } = await setup(t, { MAX_OWNER_DAILY_SESSIONS: "1", DAILY_CALL_LIMIT_ENABLED: "false" })
   const save = (payload: object) => app.inject({ method: "POST", url: "/api/briefs", headers, payload })
   assert.equal((await save({ text: "Коротко" })).statusCode, 400)
   for (let i = 0; i < 2; i++) assert.equal((await save({ images: [assignmentImage] })).statusCode, 200)

@@ -46,3 +46,7 @@ SQLite в отдельном persistent volume достаточен для те�
 - https://developers.openai.com/api/docs/guides/realtime-server-controls
 - https://developers.openai.com/api/docs/guides/realtime-conversations
 - https://developers.openai.com/api/docs/guides/structured-outputs
+
+## Суточная квота при тестировании
+
+Оператор может временно отключить обе суточные квоты на старт и переподключение звонка. Попытки продолжают учитываться в скользящем окне 24 часа. Загрузка фото, длительность и число одновременных разговоров регулируются отдельно. По умолчанию обе суточные квоты действуют.

@@ -66,7 +66,9 @@ export class Sessions {
   async create(owner: string, sdp: string, resumeId?: string, briefId?: string) {
     if (!hasCallCredentials(this.config)) throw new AppError(503, "not_configured", "AI пока недоступен. Попробуй позже.")
     if (new Set([...this.active.keys(), ...this.store.calls().map(call => call.session_id)]).size >= this.config.MAX_CONCURRENT_SESSIONS) throw new AppError(429, "busy", "Все интервьюеры сейчас заняты. Попробуй через несколько минут.")
-    if (this.store.attempts() >= this.config.MAX_DAILY_SESSIONS || this.store.attempts(owner) >= this.config.MAX_OWNER_DAILY_SESSIONS) throw new AppError(429, "daily_limit", "Достигнут лимит созвонов за 24 часа. Сохранённые разборы по-прежнему доступны.")
+    if (this.config.DAILY_CALL_LIMIT_ENABLED && (this.store.attempts() >= this.config.MAX_DAILY_SESSIONS || this.store.attempts(owner) >= this.config.MAX_OWNER_DAILY_SESSIONS)) {
+      throw new AppError(429, "daily_limit", "Достигнут лимит созвонов за 24 часа. Сохранённые разборы по-прежнему доступны.")
+    }
     if (this.store.list(owner).some(s => this.active.has(s.id))) throw new AppError(409, "already_active", "На этом устройстве уже открыт созвон. Заверши его перед новой защитой.")
     let session = resumeId ? this.store.get(resumeId, owner) : null
     if (resumeId && (!session || session.status !== "interrupted" || Date.now() - session.createdAt >= this.config.MAX_SESSION_SECONDS * 1000)) throw new AppError(409, "cannot_resume", "Эту сессию уже нельзя продолжить. Открой разбор или начни новую защиту.")
