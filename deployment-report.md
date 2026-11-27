@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.11.1 — 2026-11-27
+
+Published «Вслух» from commit `3b10943` at 04:57 UTC. All 113 tests and release CI passed. All 76 public files matched the release build over HTTPS. Health, readiness and bootstrap returned HTTP 200. Both services were healthy with zero restarts. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-27-vslukh-release.md).
+
 ## Production — 0.11.0 — 2026-11-26
 
 Published commit `1828a9f` at 11:03 UTC. All 112 tests and release CI passed. HTTPS checks matched 18 files including all four interviewer portraits. Health, readiness and bootstrap returned 200. Both services were healthy. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-26-call-portraits-release.md).

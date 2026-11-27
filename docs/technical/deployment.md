@@ -50,10 +50,10 @@ deploy/nginx.conf относится к предыдущему статичес�
 
 ## Временный режим тестирования звонков
 
-С 26 ноября 20:11 по Чите на версии 0.11.0 работает веб-образ `testwork-proof:0.11.0-test-calls-20261126`. В `shared/production.env` задано `DAILY_CALL_LIMIT_ENABLED=false`. Для возврата квот задай `true` и выполни `docker compose up -d --no-deps web` в текущем каталоге релиза. [Проверка тестового режима](../knowledge/entries/2026-11/2026-11-26-test-call-quota.md).
+С 26 ноября 20:11 по Чите суточная квота отключена на время тестирования. В `shared/production.env` задано `DAILY_CALL_LIMIT_ENABLED=false`. Для возврата квот задай `true` и выполни `docker compose up -d --no-deps web` в текущем каталоге релиза. [Проверка тестового режима](../knowledge/entries/2026-11/2026-11-26-test-call-quota.md).
 
 ## Текущий релиз
 
-26 ноября 2026 в 20:03 по Чите опубликована версия 0.11.0 с портретами команды. Рабочий образ приложения — `testwork-proof:0.11.0-20261126`, запущенная служба речи — `proof-speech:0.10.0-20261126`. Тег `proof-speech:0.11.0-20261126` указывает на тот же речевой образ. [Журнал релизов](../../deployment-report.md).
+27 ноября 2026 в 13:57 по Чите опубликована версия «Вслух» 0.11.1. Рабочие образы — `testwork-proof:0.11.1-20261127` и `proof-speech:0.11.1-20261127`. Рабочий сайт доступен по адресу [proof.uisamurai.ru](https://proof.uisamurai.ru/).
 
-Для отката к 0.10.0 выполни `docker compose up -d --no-deps --no-build web` в `/opt/testwork-proof/releases/0.10.0-20261126`. Проверь публичный `/health/ready` и верни ссылку `/opt/testwork-proof/current` на этот каталог. [Результаты проверки и резервная копия](../knowledge/entries/2026-11/2026-11-26-call-portraits-release.md).
+Для отката к предыдущей версии открой каталог `/opt/testwork-proof/releases/0.11.0-test-calls-20261126` и выполни `docker compose --profile speech up -d --no-build speech web`. Проверь публичный `/health/ready` и верни ссылку `/opt/testwork-proof/current` на этот каталог. [Результаты и резервная копия](../knowledge/entries/2026-11/2026-11-27-vslukh-release.md).
