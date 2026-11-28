@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.12.0 — 2026-11-28
+
+Published commit `08ea2db` at 12:20 UTC. All 113 tests passed. All 96 public files matched the release build over HTTPS. Both services were healthy with zero restarts. The production landing page displayed the selected icons and completed the handwriting animation on scroll. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-28-landing-release.md).
+
 ## Production — 0.11.1 — 2026-11-27
 
 Published «Вслух» from commit `3b10943` at 04:57 UTC. All 113 tests and release CI passed. All 76 public files matched the release build over HTTPS. Health, readiness and bootstrap returned HTTP 200. Both services were healthy with zero restarts. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-27-vslukh-release.md).
