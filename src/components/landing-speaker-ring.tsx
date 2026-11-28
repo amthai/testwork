@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react"
 
+import { LandingEffectBoundary } from "@/components/landing-effect-boundary"
+
 const PulsingBorder = lazy(async () => {
   const { PulsingBorder } = await import("@paper-design/shaders-react")
   return { default: PulsingBorder }
@@ -19,7 +21,7 @@ export function LandingSpeakerRing({ animated, fadingOut, onFadeOutComplete }: {
       }
     }}
   >
-    {animated && <Suspense fallback={null}>
+    {animated && <LandingEffectBoundary><Suspense fallback={null}>
       <PulsingBorder
         className="landing-speaker-arcs"
         minPixelRatio={1.5} maxPixelCount={180_000}
@@ -28,6 +30,6 @@ export function LandingSpeakerRing({ animated, fadingOut, onFadeOutComplete }: {
         spots={1} spotSize={0.3} thickness={0.065} softness={0.56}
         intensity={0.75} bloom={0.38} pulse={0.78} speed={1.65} smoke={0}
       />
-    </Suspense>}
+    </Suspense></LandingEffectBoundary>}
   </div>
 }

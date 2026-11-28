@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ShaderFill, type Shader } from "@figma/expressive-components"
+import { LandingEffectBoundary } from "@/components/landing-effect-boundary"
 import { manifest, render, setup } from "@/lib/custom-effects/chromatic-metal"
 
 const cycleMilliseconds = 30_000
@@ -51,6 +52,9 @@ export function LandingWordmark() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    if (!navigator.gpu || typeof ResizeObserverEntry === "undefined" ||
+      !("devicePixelContentBoxSize" in ResizeObserverEntry.prototype)) return
+
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)")
     const updateMotion = () => setAnimated(!motion.matches)
     updateMotion()
@@ -75,6 +79,8 @@ export function LandingWordmark() {
   return <div ref={logo} role="img" aria-label="Вслух" className="landing-wordmark">
     <img width={182} height={38} alt="" src={`${import.meta.env.BASE_URL}landing/wordmark.svg`}
       onLoad={event => setImage(event.currentTarget)} />
-    {visible && shader && <ShaderFill shader={shader} width={182} height={38} />}
+    {visible && shader && <LandingEffectBoundary>
+      <ShaderFill shader={shader} width={182} height={38} />
+    </LandingEffectBoundary>}
   </div>
 }
