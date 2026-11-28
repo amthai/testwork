@@ -54,6 +54,6 @@ deploy/nginx.conf относится к предыдущему статичес�
 
 ## Текущий релиз
 
-28 ноября 2026 в 21:20 по Чите опубликована версия «Вслух» 0.12.0. Веб-контейнер использует образ `testwork-proof:0.12.0-20261128`, речевой сервис — `proof-speech:0.11.1-20261127`. [Рабочий сайт](https://proof.uisamurai.ru/).
+28 ноября 2026 в 21:29 по Чите опубликована версия «Вслух» 0.12.1. Веб-контейнер использует образ `testwork-proof:0.12.1-20261128`, речевой сервис — `proof-speech:0.11.1-20261127`. [Рабочий сайт](https://proof.uisamurai.ru/).
 
-Для отката открыть каталог `/opt/testwork-proof/releases/0.11.1-20261127` и выполнить `docker compose up -d --no-deps --no-build web`. После проверки публичного `/health/ready` вернуть ссылку `/opt/testwork-proof/current` на этот каталог. [Результаты и резервная копия](../knowledge/entries/2026-11/2026-11-28-landing-release.md).
+Для отката открыть каталог `/opt/testwork-proof/releases/0.12.0-20261128` и выполнить `docker compose up -d --no-deps --no-build web`. После проверки публичного `/health/ready` вернуть ссылку `/opt/testwork-proof/current` на этот каталог. [Результаты и резервная копия](../knowledge/entries/2026-11/2026-11-28-landing-black-screen.md).

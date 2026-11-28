@@ -1,5 +1,9 @@
 # Deployment report
 
+## Production — 0.12.1 — 2026-11-28
+
+Published commit `6d4b52a` at 12:29 UTC. Verified the landing page, navigation to assignment preparation and return navigation in the production browser check. All 96 public assets matched the release. Health, readiness and bootstrap returned HTTP 200. [Verification and rollback](docs/knowledge/entries/2026-11/2026-11-28-landing-black-screen.md).
+
 ## Production — 0.12.0 — 2026-11-28
 
 Published commit `08ea2db` at 12:20 UTC. All 113 tests passed. All 96 public files matched the release build over HTTPS. Both services were healthy with zero restarts. The production landing page displayed the selected icons and completed the handwriting animation on scroll. [Verification, backup and rollback](docs/knowledge/entries/2026-11/2026-11-28-landing-release.md).
