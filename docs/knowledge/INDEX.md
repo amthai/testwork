@@ -4,6 +4,8 @@
 
 | Дата | Тип | Область | Запись | Статус |
 |---|---|---|---|---|
+| 2026-11-28 | design | главная | [Рукописная фраза над подвалом](entries/2026-11/2026-11-28-landing-handwriting.md) | done |
+| 2026-11-28 | design | главная | [Иконки преимуществ](entries/2026-11/2026-11-28-benefit-icons.md) | done |
 | 2026-11-28 | design | главная | [Случайная передача слова](entries/2026-11/2026-11-28-conversation-turns.md) | done |
 | 2026-11-28 | design | главная | [Палитра световых дуг](entries/2026-11/2026-11-28-ring-palette.md) | done |
 | 2026-11-28 | design | главная | [Световые импульсы Pulsing Border](entries/2026-11/2026-11-28-pulsing-border.md) | done |
