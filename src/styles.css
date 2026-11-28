@@ -341,10 +341,10 @@
 .voice-avatar-filled { width: clamp(76px,min(26vw,18svh),168px); max-width: 100%; }
 .call-member[data-speaking="false"] .avatar-waves { display: none; }
 .voice-avatar-filled .avatar-crop { position: relative; }
-.voice-avatar-filled .avatar-waves { stroke: none; }
-.voice-avatar-filled path:nth-child(1) { fill: #796ae8; opacity: .55; }
-.voice-avatar-filled path:nth-child(2) { fill: #a192ff; opacity: .85; }
-.voice-avatar-filled path:nth-child(3) { fill: #97e5ea; opacity: .9; }
+.avatar-waves-filled { stroke: none; }
+.avatar-waves-filled path:nth-child(1) { fill: #796ae8; opacity: .55; }
+.avatar-waves-filled path:nth-child(2) { fill: #a192ff; opacity: .85; }
+.avatar-waves-filled path:nth-child(3) { fill: #97e5ea; opacity: .9; }
 .call-info { display: flex; flex-direction: column; align-items: center; max-width: 44ch; }
 .call-info [data-slot="button"] { --foreground: #f9f9f9; --background: #1d1d1d; }
 .call-info .voice-bars i { background: #d5d5d5; }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 269 64" preserveAspectRatio="none" fill="none">
+  <defs>
+    <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="18" y1="9" x2="269" y2="64">
+      <stop stop-color="white" stop-opacity=".9"/>
+      <stop offset=".5" stop-color="white" stop-opacity=".2"/>
+      <stop offset="1" stop-color="white" stop-opacity=".8"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="267" height="62" rx="31" stroke="url(#rim)" stroke-width="2"/>
+</svg>

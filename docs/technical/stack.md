@@ -3,6 +3,7 @@
 | Область | Реализация |
 |---|---|
 | Frontend | React, strict TypeScript, Vite, Tailwind, Fluid Functionalism (Radix/shadcn), Fira Sans Condensed, Motion |
+| Крышка экрана на главной | Three.js, объёмная геометрия с фаской, HTML-портреты. 3D-модуль загружается отдельно при разрешённой анимации. |
 | Media | Media Capture API, AudioWorklet (DeepSeek) или RTCPeerConnection (OpenAI) |
 | Backend | Node.js 24, Fastify, strict TypeScript |
 | AI | DeepSeek Flash, GigaAM и Яндекс LiveTTS или Piper либо OpenAI SDK, Realtime unified WebRTC interface, server-side WebSocket |
